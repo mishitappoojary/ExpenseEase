@@ -39,14 +39,14 @@ const ConnectionMenu: React.ForwardRefRenderFunction<BottomSheetModal, Connectio
         <MenuItem onPress={() => onPress('update')}>
           <>
             <MenuIcon name="sync" />
-            <Text variant="title">Atualizar</Text>
+            <Text variant="title">Update</Text>
           </>
         </MenuItem>
         <Divider />
         <MenuItem onPress={() => onPress('delete')}>
           <>
             <MenuIcon name="delete" />
-            <Text variant="title">Apagar</Text>
+            <Text variant="title">Switch off</Text>
           </>
         </MenuItem>
       </Container>

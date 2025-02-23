@@ -20,6 +20,7 @@ import MonthYearPicker from '../../components/MonthYearPicker';
 import ScreenContainer from '../../components/ScreenContainer';
 import Text from '../../components/Text';
 import TransactionListItem from '../../components/TransactionListItem';
+import AddTransactionButton from '../../\components/AddTransactionButton/AddTransactionButton';
 import AppContext from '../../contexts/AppContext';
 import { checkCurrentMonth, formatMonthYearDate, NOW } from '../../utils/date';
 import {
@@ -111,17 +112,17 @@ const Home: React.FC = () => {
 
   const handleRefreshPage = () => {
     Alert.alert(
-      'Deseja sincronizar as conexões?',
-      'Ao sincronizar as conexões, os dados mais recentes serão obtidos. Isso pode levar alguns minutos.\n\nAtualizar irá apenas obter o que já foi sincronizado previamente.',
+      'Do you want to synchronize connections?',
+      'When synchronizing connections, the latest data will be obtained. This may take a few minutes.\n\nRefreshing will only get what has already been synced previously.',
       [
         {
-          text: 'Atualizar',
+          text: 'Update',
           onPress: async () => {
             await fetchItems();
           },
         },
         {
-          text: 'Sincronizar',
+          text: 'Synchronize',
           onPress: async () => {
             await updateItems();
           },
@@ -146,6 +147,8 @@ const Home: React.FC = () => {
         contentContainerStyle={{ flexGrow: 1, overflow: 'hidden' }}
       >
         <TopContainer>
+          {/* Neumorphic Button */}
+          {/* <AddTransaction /> */}
           <Header
             title={formatMonthYearDate(date)}
             titleIcon="expand-more"
@@ -166,20 +169,20 @@ const Home: React.FC = () => {
           {isCurrentMonth && (
             <BalanceContainer>
               <Text variant="light" color="textWhite">
-                Atualizado em {lastUpdateDate}
+                Updated on {lastUpdateDate}
               </Text>
               <BalanceLine>
-                <Text color="textWhite">Saldo das contas</Text>
+                <Text color="textWhite">Account balance</Text>
                 <BalanceFillLine />
                 <Money value={totalBalance} color="textWhite" />
               </BalanceLine>
               <BalanceLine>
-                <Text color="textWhite">Fatura dos cartões</Text>
+                <Text color="textWhite">Card invoice</Text>
                 <BalanceFillLine />
                 <Money value={-1 * totalInvoice} color="textWhite" />
               </BalanceLine>
               <BalanceLine>
-                <Text color="textWhite">Investimentos</Text>
+                <Text color="textWhite">Investments</Text>
                 <BalanceFillLine />
                 <Money value={totalInvestment} color="textWhite" />
               </BalanceLine>
@@ -195,7 +198,7 @@ const Home: React.FC = () => {
                 />
               </BalanceLine>
               <ConnectionsButton
-                text="Ver minhas conexões"
+                text="See my connections"
                 color="secondary"
                 icon="account-balance"
                 onPress={() => navigation.navigate('connections')}
@@ -206,12 +209,12 @@ const Home: React.FC = () => {
         <BottomSheet>
           <FlexContainer gap={16}>
             <SectionHeader>
-              <Text variant="title">Resumo do mês</Text>
-              <SeeMoreButton text="Ver histórico" onPress={() => navigation.navigate('history')} />
+              <Text variant="title">Summary of the month</Text>
+              <SeeMoreButton text="View history" onPress={() => navigation.navigate('history')} />
             </SectionHeader>
             <BalanceWithTreding>
               <Text>
-                Saldo: <Money value={balance} variant="default-bold" />
+                Balance: <Money value={balance} variant="default-bold" />
               </Text>
               {showTrendingIcon &&
                 (balance > 0 ? (
@@ -221,14 +224,14 @@ const Home: React.FC = () => {
                 ))}
             </BalanceWithTreding>
             <FlexContainer gap={12}>
-              <Text variant="default-bold">Entradas</Text>
+              <Text variant="default-bold">Entries</Text>
               <HorizontalBarContainer>
                 <HorizontalBar color="income" grow={incomesBarGrow} />
                 <Money value={totalIncomes} />
               </HorizontalBarContainer>
             </FlexContainer>
             <FlexContainer gap={12}>
-              <Text variant="default-bold">Saídas</Text>
+              <Text variant="default-bold">Outputs</Text>
               <HorizontalBarContainer>
                 <HorizontalBar
                   color="expense"
@@ -241,8 +244,8 @@ const Home: React.FC = () => {
           </FlexContainer>
           <Divider />
           <SectionHeader>
-            <Text variant="title">Últimas transações</Text>
-            <SeeMoreButton text="Ver mais" onPress={() => navigation.navigate('transactions')} />
+            <Text variant="title">Latest transactions</Text>
+            <SeeMoreButton text="See more" onPress={() => navigation.navigate('transactions')} />
           </SectionHeader>
           <TransactionListContainer onLayout={onTransactionListLayout}>
             {lastTransactions.map((item, index) => (
@@ -258,6 +261,7 @@ const Home: React.FC = () => {
         onChange={(value) => handleMonthYearPickerChange(value)}
         onClose={() => setMonthYearPickerOpened(false)}
       />
+      <AddTransactionButton onPress={() => navigation.navigate('AddTransaction')} />
     </ScreenContainer>
   );
 };

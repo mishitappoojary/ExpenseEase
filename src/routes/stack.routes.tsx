@@ -6,6 +6,8 @@ import History from '../pages/History';
 import Home from '../pages/Home';
 import Transactions from '../pages/Transactions';
 import ManualConnect from '../pages/ManualConnect';
+import AddTransactionScreen from '../pages/AddTransactionScreen/AddTransactionScreen';
+import CameraScreen from '../pages/CameraScreen/CameraScreen';
 
 export type StackRouteParamList = {
   home: undefined;
@@ -28,7 +30,9 @@ const StackRoutes: React.FC = () => {
         <Screen name="manualConnect" component={ManualConnect} />
         <Screen name="transactions" component={Transactions} />
         <Screen name="history" component={History} />
-      </Group>
+        <Screen name="AddTransaction" component={AddTransactionScreen} />
+        <Screen name="CameraScreen" component={CameraScreen} />
+     </Group>
     </Navigator>
   );
 };

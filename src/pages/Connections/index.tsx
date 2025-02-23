@@ -39,7 +39,7 @@ const Connections: React.FC = () => {
         stickyHeaderIndices={[0]}
       >
         <StyledHeader
-          title="Conexões"
+          title="Connections"
           actions={[
             {
               icon: hideValues ? 'visibility-off' : 'visibility',
@@ -54,7 +54,7 @@ const Connections: React.FC = () => {
         ></StyledHeader>
         <BottomSheet>
           <Text variant="light" color="textLight">
-            {items.length} Conexões
+            {items.length} Connections
           </Text>
           <FlexContainer gap={24}>{items.map((item) => renderItem(item))}</FlexContainer>
         </BottomSheet>

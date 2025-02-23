@@ -8,6 +8,7 @@ import Money from '../../components/Money';
 import ScreenContainer from '../../components/ScreenContainer';
 import Text from '../../components/Text';
 import AppContext, { MonthlyBalance } from '../../contexts/AppContext';
+import { useTransaction } from '../../contexts/TransactionContext';
 import { checkCurrentYear } from '../../utils/date';
 import {
   Button,
@@ -119,7 +120,7 @@ const History: React.FC = () => {
             </TouchableIconContainer>
           </ItemHeader>
           <Text>
-            Saldo: <Money value={balance} variant="default-bold" />
+            Balance: <Money value={balance} variant="default-bold" />
           </Text>
           <HorizontalBarContainer>
             <StyledHorizontalBar color="income" grow={incomesBarGrow} />
@@ -153,7 +154,7 @@ const History: React.FC = () => {
             <ActivityIndicator size={24} color={theme.colors.textWhite} />
           ) : (
             <Text variant="title" color="textWhite">
-              Ver mais
+              See more
             </Text>
           )}
         </Button>
@@ -168,7 +169,7 @@ const History: React.FC = () => {
   return (
     <ScreenContainer>
       <StyledHeader
-        title="Histórico mensal"
+        title="Monthly History"
         actions={[
           {
             icon: hideValues ? 'visibility-off' : 'visibility',

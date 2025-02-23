@@ -11,6 +11,7 @@ export declare global {
       manualConnect: undefined;
       transactions: undefined;
       history: undefined;
+      AddTransaction: undefined;
     }
   }
 }

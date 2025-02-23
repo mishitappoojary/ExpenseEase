@@ -1,6 +1,18 @@
-export type ConnectTokenOptions = {
-  /** Url where notifications will be sent at any item's event */
-  webhookUrl?: string;
-  /** A unique identifier of the user, usually used the UserId of your app */
-  clientUserId?: string;
+export type AuthResponse = {
+  numbers: {
+    ach?: {
+      account: string;
+      routing: string;
+      wire_routing?: string;
+    }[];
+    eft?: {
+      account: string;
+      institution: string;
+      branch: string;
+    }[];
+    international?: {
+      iban: string;
+      bic: string;
+    }[];
+  };
 };

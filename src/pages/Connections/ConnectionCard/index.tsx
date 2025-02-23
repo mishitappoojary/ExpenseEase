@@ -28,17 +28,17 @@ import {
 } from './styles';
 
 const accountName: Record<AccountSubType, string> = {
-  CHECKING_ACCOUNT: 'Conta corrente',
-  SAVINGS_ACCOUNT: 'Conta poupança',
-  CREDIT_CARD: 'Cartão de crédito',
+  CHECKING_ACCOUNT: 'Current account',
+  SAVINGS_ACCOUNT: 'Savings account',
+  CREDIT_CARD: 'Credit card',
 };
 
 const itemStatusMessage: Record<ItemStatus, string> = {
   UPDATED: '',
   UPDATING: '',
-  LOGIN_ERROR: 'Atualize as credenciais da conexão.',
-  WAITING_USER_INPUT: 'Autenticação de duas etapas solicitada.',
-  OUTDATED: 'Sincronize a conexão novamente.',
+  LOGIN_ERROR: 'Update the connection credentials.',
+  WAITING_USER_INPUT: 'Two-step authentication requested.',
+  OUTDATED: 'Sync the connection again.',
 };
 
 export interface ConnectionCardProps extends ViewProps {
@@ -72,12 +72,12 @@ const ConnectionCard: React.FC<ConnectionCardProps> = ({ item, accounts, ...view
 
   const handleDeleteItem = async () => {
     Alert.alert(
-      'Apagar conexão?',
-      'Tem certeza que deseja apagar a conexão?',
+      'Delete connection?',
+      'Are you sure you want to delete the connection?',
       [
-        { text: 'Cancelar', onPress: () => {} },
+        { text: 'Cancel', onPress: () => {} },
         {
-          text: 'Apagar',
+          text: 'To switch off',
           onPress: async () => {
             await deleteItem(item);
           },
@@ -107,7 +107,7 @@ const ConnectionCard: React.FC<ConnectionCardProps> = ({ item, accounts, ...view
             <MaterialIcons name="error" size={24} color={theme.colors.textWhite} />
             <CardErrorMessage>
               <Text variant="light" color="textWhite">
-                Não foi possível sincronizar os dados!
+                Unable to sync data!
               </Text>
               <Text variant="light" color="textWhite">
                 {itemStatusMessage[item.status]}
@@ -123,7 +123,7 @@ const ConnectionCard: React.FC<ConnectionCardProps> = ({ item, accounts, ...view
             <CardHeaderContent>
               <Text>{item.connector.name}</Text>
               <Text variant="extra-light" color="textLight">
-                Sincronizado em: {lastUpdateDate}
+                Synced on: {lastUpdateDate}
               </Text>
             </CardHeaderContent>
             <TouchableOpacity>

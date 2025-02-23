@@ -21,9 +21,9 @@ const TransactionTabs: React.FC<TransactionTabsProps> = ({ renderScene }) => {
   const [index, setIndex] = useState(0);
 
   const routes: TransactionTabsRoute[] = [
-    { key: 'default', title: 'Tudo' },
-    { key: 'incomes', title: 'Entradas' },
-    { key: 'expenses', title: 'Saídas' },
+    { key: 'default', title: 'All' },
+    { key: 'incomes', title: 'Entries' },
+    { key: 'expenses', title: 'Outputs' },
   ];
 
   const renderTabBar = (props: TabBarProps<TransactionTabsRoute>) => (
