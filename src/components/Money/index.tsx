@@ -14,15 +14,15 @@ const Money: React.FC<MoneyProps> = ({ value, ...textProps }) => {
   const formatedValue = Math.abs(value)
     .toFixed(2)
     .replace('.', ',')
-    .replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
+    .replace(/(\d)(?=(\d{3})+(?!\d))/g, '₹1.');
 
-  const currency = 'R$';
+  const currency = 'R₹';
 
   const prefix = value < 0 ? '- ' : '';
 
   const finalText = `${prefix}${currency} ${formatedValue}`;
 
-  return <Text {...textProps}>{hideValues ? '$$$$' : finalText}</Text>;
+  return <Text {...textProps}>{hideValues ? '₹₹₹₹' : finalText}</Text>;
 };
 
 export default Money;

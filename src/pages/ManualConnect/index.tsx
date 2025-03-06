@@ -17,21 +17,21 @@ const ManualConnect: React.FC = () => {
   const saveConnection = () => {
     try {
       storeItem({ id } as Item);
-      Toast.show({ type: 'success', text1: 'Conexão adicionada com sucesso!' });
+      Toast.show({ type: 'success', text1: 'Connection added successfully!' });
       navigation.navigate('connections');
     } catch (err) {
-      Toast.show({ type: 'error', text1: 'Não foi possível adicionar a conexão!' });
+      Toast.show({ type: 'error', text1: 'Unable to add connection!' });
     }
   };
 
   return (
     <ScreenContainer>
-      <StyledHeader title="Conexão manual" />
+      <StyledHeader title="Manual connection" />
       <BottomSheet>
         <TextInput placeholder="Identificador" onChangeText={setId} value={id} />
         <Button onPress={saveConnection}>
           <Text variant="title" color="textWhite">
-            Adicionar
+            To add
           </Text>
         </Button>
       </BottomSheet>

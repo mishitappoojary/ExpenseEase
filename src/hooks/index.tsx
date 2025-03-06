@@ -1,8 +1,8 @@
 import React from 'react';
-import { PluggyServiceContextProvider } from './pluggyService';
+import { PlaidServiceProvider } from './useplaidService'; // Updated to use PlaidService
 
 const HooksProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  return <PluggyServiceContextProvider>{children}</PluggyServiceContextProvider>;
+  return <PlaidServiceProvider>{children}</PlaidServiceProvider>;
 };
 
 export default HooksProvider;

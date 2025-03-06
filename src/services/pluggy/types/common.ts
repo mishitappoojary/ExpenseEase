@@ -16,7 +16,7 @@ export const CURRENCY_CODES = [
  */
 export type CurrencyCode = typeof CURRENCY_CODES[number];
 
-export const COUNTRY_CODES = ['AR', 'BR', 'CO', 'MX'] as const;
+export const COUNTRY_CODES = ['AR', 'BR', 'CO', 'MX', 'IN'] as const;
 /**
  * @typedef CountryCode
  *  Supported and available countries, in ISO-3166-1 alpha 2 format.

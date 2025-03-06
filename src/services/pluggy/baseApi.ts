@@ -1,143 +1,57 @@
 import { ApisauceInstance, create } from 'apisauce';
-import jwtDecode from 'jwt-decode';
 
-export type PluggyClientParams = {
+export type PlaidClientParams = {
   clientId: string;
   clientSecret: string;
-};
-
-type QueryParameters = {
-  [key: string]: number | number[] | string | string[] | boolean | undefined;
+  accessToken?: string;
 };
 
 export class BaseApi {
-  private client: ApisauceInstance;
-  private clientId: string;
-  private clientSecret: string;
-  private apiKey: string;
-  private defaultHeaders: Record<string, string>;
+  protected client: ApisauceInstance;
+  protected clientId: string;
+  protected clientSecret: string;
+  protected accessToken?: string;
 
-  constructor({ clientId, clientSecret }: PluggyClientParams) {
+  constructor({ clientId, clientSecret, accessToken }: PlaidClientParams) {
     this.clientId = clientId;
     this.clientSecret = clientSecret;
+    this.accessToken = accessToken;
 
     this.client = create({
-      baseURL: 'https://api.pluggy.ai',
+      baseURL: 'https://sandbox.plaid.com',
+      headers: {
+        accept: 'application/json',
+        'content-type': 'application/json',
+      },
     });
-
-    this.apiKey = '';
-
-    this.defaultHeaders = {
-      accept: 'application/json',
-      'content-type': 'application/json',
-    };
   }
 
-  protected async getRequest<T>(url: string, params?: QueryParameters): Promise<T> {
+  // Setter method to update accessToken dynamically
+  public setAccessToken(token: string) {
+    this.accessToken = token;
+  }
+
+  // Generic function to handle all POST requests
+  protected async postRequest<T>(url: string, body: Record<string, unknown>, includeAccessToken = true): Promise<T> {
     try {
-      const response = await this.client.get<T>(url, params, {
-        headers: {
-          ...this.defaultHeaders,
-          'X-API-KEY': await this.getApiKey(),
-        },
-      });
+      const requestBody = {
+        client_id: this.clientId,
+        secret: this.clientSecret,
+        ...(includeAccessToken && this.accessToken ? { access_token: this.accessToken } : {}),
+        ...body,
+      };
+
+      const response = await this.client.post<T>(url, requestBody);
 
       if (!response.ok) {
-        throw response.problem;
+        console.error('Plaid API Error:', response);
+        throw new Error(response.problem || 'Unknown API error');
       }
 
-      return Promise.resolve(response.data as T);
+      return response.data as T;
     } catch (error) {
+      console.error('Request failed:', error);
       return Promise.reject(error);
     }
-  }
-
-  protected async postRequest<T>(url: string, body?: Record<string, unknown>): Promise<T> {
-    try {
-      const response = await this.client.post<T>(url, body, {
-        headers: {
-          ...this.defaultHeaders,
-          'X-API-KEY': await this.getApiKey(),
-        },
-      });
-
-      if (!response.ok) {
-        throw response.problem;
-      }
-
-      return Promise.resolve(response.data as T);
-    } catch (error) {
-      return Promise.reject(error);
-    }
-  }
-
-  protected async patchRequest<T>(url: string, body?: Record<string, unknown>): Promise<T> {
-    try {
-      const response = await this.client.patch<T>(url, body, {
-        headers: {
-          ...this.defaultHeaders,
-          'X-API-KEY': await this.getApiKey(),
-        },
-      });
-
-      if (!response.ok) {
-        throw response.problem;
-      }
-
-      return Promise.resolve(response.data as T);
-    } catch (error) {
-      return Promise.reject(error);
-    }
-  }
-
-  protected async deleteRequest<T>(url: string, params?: QueryParameters): Promise<T> {
-    try {
-      const response = await this.client.delete<T>(url, params, {
-        headers: {
-          ...this.defaultHeaders,
-          'X-API-KEY': await this.getApiKey(),
-        },
-      });
-
-      if (!response.ok) {
-        throw response.problem;
-      }
-
-      return Promise.resolve(response.data as T);
-    } catch (error) {
-      return Promise.reject(error);
-    }
-  }
-
-  protected async getApiKey(): Promise<string> {
-    if (this.apiKey == '' || this.isApiKeyExpired(this.apiKey)) {
-      this.apiKey = await this.createApiKey();
-    }
-
-    return this.apiKey;
-  }
-
-  protected isApiKeyExpired(token: string): boolean {
-    const { exp } = jwtDecode<{ exp: number }>(token);
-    const now_seconds = Date.now() / 1000;
-    const expired = exp <= Math.floor(now_seconds);
-    return expired;
-  }
-
-  public async createApiKey(): Promise<string> {
-    const response = await this.client.post<{ apiKey: string }>('/auth', {
-      clientId: this.clientId,
-      clientSecret: this.clientSecret,
-    });
-
-    if (!response.ok) {
-      throw response.problem;
-    }
-
-    if (!response.data) {
-      throw 'Could not create an apiKey';
-    }
-
-    return response.data.apiKey;
   }
 }

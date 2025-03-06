@@ -35,7 +35,7 @@ const TransactionList: React.FC<TransactionListProps> = ({
     return (
       <ListHeaderContainer>
         <Text variant="light" color="textLight">
-          {transactions.length} transações
+          {transactions.length} transactions
         </Text>
         <Money variant="heading" value={reducedValue} />
       </ListHeaderContainer>
@@ -88,6 +88,7 @@ const TransactionList: React.FC<TransactionListProps> = ({
           colors={[theme.colors.primary]}
         />
       }
+      
       data={transactions}
       renderItem={renderItem}
       keyExtractor={(item) => item.id}

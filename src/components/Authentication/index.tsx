@@ -24,7 +24,7 @@ const AuthenticationProvider: React.FC<AuthenticateProps> = ({ children }) => {
 
     try {
       const result = await LocalAuthentication.authenticateAsync({
-        promptMessage: 'Desbloqueie seu telefone',
+        promptMessage: 'Unlock your phone',
       });
 
       return result.success;
@@ -43,7 +43,7 @@ const AuthenticationProvider: React.FC<AuthenticateProps> = ({ children }) => {
     <Container>
       <SpashImage source={require('../../assets/splash.png')} />
       <AuthButton onPress={authenticationRoutine}>
-        <Text variant="title">Usar senha do telefone</Text>
+        <Text variant="title">Use phone password</Text>
       </AuthButton>
     </Container>
   );
