@@ -20,7 +20,8 @@ import HooksProvider from './src/hooks/index';
 import Routes from './src/routes';
 import dark from './src/theme/dark';
 import light from './src/theme/light';
-import './src/services/firebaseConfig'; 
+import './src/services/firebaseConfig';
+import { CategoriesProvider } from './src/contexts/CategoriesContext'; 
 
 moment.locale('en');
 
@@ -52,6 +53,7 @@ export default function App() {
       <AuthProvider>
         <AppContextProvider>
           <TransactionProvider>
+          <CategoriesProvider>
             <HooksProvider>
               <GestureHandlerRootView style={{ flex: 1 }}>
                 <BottomSheetModalProvider>
@@ -63,6 +65,7 @@ export default function App() {
                 </BottomSheetModalProvider>
               </GestureHandlerRootView>
             </HooksProvider>
+            </CategoriesProvider>
           </TransactionProvider>
         </AppContextProvider>
       </AuthProvider>

@@ -62,27 +62,44 @@ const Header: React.FC<HeaderProps> = ({
         <UserIconContainer>
           <MaterialIcons name={userIcon} color={'white'} size={40} onPress={toggleUserDropdown} />
           {showUserDropdown && (
-            <DropdownMenu>
+            <DropdownMenu
+              style={{
+                backgroundColor: theme.colors.backgroundWhite, // Adjust container background based on theme
+                borderRadius: 8,
+                padding: 8,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 4,
+                elevation: 5,
+              }}
+            >
               {userName && (
-            <DropdownItem style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 16 }}>
-            <Text style={{ fontSize: 18 }}>👋</Text>
-            <Text style={{ fontWeight: 'bold', fontSize: 16, color: '#333' }}>
-              Hi, {userName.charAt(0).toUpperCase() + userName.slice(1)} !!
-            </Text>
-            </DropdownItem>
-
+                <DropdownItem style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 16 }}>
+                  <Text style={{ fontSize: 18 }}>👋</Text>
+                  <Text style={{ fontWeight: 'bold', fontSize: 16, color: theme.colors.text }}>
+                    Hi, {userName.charAt(0).toUpperCase() + userName.slice(1)} !!
+                  </Text>
+                </DropdownItem>
               )}
               <DropdownItem>
-                <Text>BudBot</Text>
+                <Text style={{ color: theme.colors.text }}>BudBot</Text>
               </DropdownItem>
               <DropdownItem>
-                <Text>Budget</Text>
+                <Text style={{ color: theme.colors.text }}>Budget</Text>
               </DropdownItem>
               <DropdownItem>
-                <Text>Graphs</Text>
+                <Text style={{ color: theme.colors.text }}>Graphs</Text>
+              </DropdownItem>
+              <DropdownItem onPress={() => navigation.navigate('goals')}>
+                <Text style={{ color: theme.colors.text }}>Goals</Text>
+              </DropdownItem>
+              <DropdownItem onPress={() => navigation.navigate('addCategories')}>
+                <Text style={{ color: theme.colors.text }}>Add Categories</Text>
               </DropdownItem>
             </DropdownMenu>
           )}
+
         </UserIconContainer>
       )}
 

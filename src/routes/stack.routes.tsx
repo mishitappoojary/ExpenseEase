@@ -11,6 +11,8 @@ import CameraScreen from '../pages/CameraScreen/CameraScreen';
 import { useAuth } from '../contexts/AuthContext';
 import SignInScreen from '../pages/SignUp/SignInScreen';
 import SignUpScreen from '../pages/SignUp/SignUpScreen';
+import AddCategories from '../pages/Categories/AddCategories';
+import GoalsScreen from '../pages/Goals/GoalsScreen';
 
 export type StackRouteParamList = {
   home: undefined;
@@ -21,6 +23,8 @@ export type StackRouteParamList = {
   history: undefined;
   signIn: undefined;
   signUp: undefined;
+  AddCategories: undefined;
+  goals: undefined;
 };
 
 const { Screen, Navigator, Group } = createNativeStackNavigator<StackRouteParamList>();
@@ -43,6 +47,8 @@ const StackRoutes: React.FC = () => {
           <Screen name="history" component={History} />
           <Screen name="AddTransaction" component={AddTransactionScreen} />
           <Screen name="CameraScreen" component={CameraScreen} />
+          <Screen name="addCategories" component={AddCategories} />
+          <Screen name="goals" component={GoalsScreen} />
         </Group>
       ) : (
         <Group screenOptions={{ headerShown: false }}>

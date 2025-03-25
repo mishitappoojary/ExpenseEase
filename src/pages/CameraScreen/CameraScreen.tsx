@@ -1,108 +1,72 @@
-// CameraScreen.tsx
+import React, { useEffect, useRef, useState } from 'react';
+import { Button, Text, View, Image, TouchableOpacity } from 'react-native';
+import { Camera, CameraType } from 'expo-camera';
+import { extractTextFromImage } from '../../utils/ocr';
 
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Button, Image } from 'react-native';
-import { Camera } from 'expo-camera';
-import Tesseract from 'tesseract.js';
-
-const CameraScreen: React.FC = () => {
+const CameraScreen = () => {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
-  const [cameraRef, setCameraRef] = useState<Camera | null>(null);
   const [imageUri, setImageUri] = useState<string | null>(null);
-  const [ocrText, setOcrText] = useState<string>('');
+  const [extractedText, setExtractedText] = useState<string>('');
+  const cameraRef = useRef<Camera>(null);
 
   useEffect(() => {
-    const requestCameraPermission = async () => {
+    (async () => {
       const { status } = await Camera.requestCameraPermissionsAsync();
       setHasPermission(status === 'granted');
-    };
-
-    requestCameraPermission();
+    })();
   }, []);
 
   const takePicture = async () => {
-    if (cameraRef) {
-      const photo = await cameraRef.takePictureAsync();
+    if (cameraRef.current) {
+      const photo = await cameraRef.current.takePictureAsync();
       setImageUri(photo.uri);
-      recognizeText(photo.uri);
+      await processImage(photo.uri);
     }
   };
 
-  const recognizeText = async (uri: string) => {
-    if (uri) {
-      Tesseract.recognize(
-        uri,
-        'eng', // Change this to your desired language
-        {
-          logger: (info) => console.log(info), // Log progress
-        },
-      )
-        .then(({ data: { text } }) => {
-          setOcrText(text);
-        })
-        .catch((error) => {
-          console.error('OCR error:', error);
-          setOcrText('Error recognizing text');
-        });
+  const processImage = async (uri: string) => {
+    try {
+      console.log('Captured Image URI:', uri);
+      const text = await extractTextFromImage(uri);
+      console.log('Extracted Text:', text);
+      setExtractedText(text);
+    } catch (error) {
+      console.error('OCR Error:', error);
+      setExtractedText('Failed to extract text');
     }
   };
 
-  if (hasPermission === null) {
-    return (
-      <View>
-        <Text>Requesting for camera permission</Text>
-      </View>
-    );
-  }
-
-  if (hasPermission === false) {
-    return (
-      <View>
-        <Text>No access to camera</Text>
-      </View>
-    );
-  }
+  if (hasPermission === null) return <Text>Requesting permission...</Text>;
+  if (hasPermission === false) return <Text>No access to camera</Text>;
 
   return (
-    <View style={styles.container}>
-      <Camera style={styles.camera} ref={setCameraRef}>
-        <View style={styles.buttonContainer}>
-          <Button title="Take Picture" onPress={takePicture} />
-          {imageUri && <Image source={{ uri: imageUri }} style={styles.capturedImage} />}
-          {ocrText ? (
-            <Text style={styles.text}>{ocrText}</Text>
-          ) : (
-            <Text style={styles.text}>No text recognized yet.</Text>
-          )}
-        </View>
-      </Camera>
+    <View style={{ flex: 1 }}>
+      {!imageUri ? (
+        <>
+          <Camera ref={cameraRef} style={{ flex: 1 }} type={CameraType.back} />
+          <TouchableOpacity
+            onPress={takePicture}
+            style={{
+              position: 'absolute',
+              bottom: 20,
+              alignSelf: 'center',
+              backgroundColor: '#fff',
+              padding: 10,
+              borderRadius: 50,
+            }}
+          >
+            <Text style={{ fontSize: 16 }}>📸 Capture</Text>
+          </TouchableOpacity>
+        </>
+      ) : (
+        <>
+          <Image source={{ uri: imageUri }} style={{ width: 300, height: 300, alignSelf: 'center' }} />
+          <Text style={{ marginTop: 20, textAlign: 'center' }}>{extractedText || 'No text extracted'}</Text>
+          <Button title="Take another" onPress={() => setImageUri(null)} />
+        </>
+      )}
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  camera: {
-    flex: 1,
-  },
-  buttonContainer: {
-    flex: 1,
-    backgroundColor: 'transparent',
-    flexDirection: 'column',
-    justifyContent: 'space-between',
-    padding: 20,
-  },
-  text: {
-    fontSize: 18,
-    color: 'white',
-  },
-  capturedImage: {
-    width: '100%',
-    height: 200,
-    marginTop: 10,
-  },
-});
 
 export default CameraScreen;
