@@ -35,7 +35,9 @@ const TextButton: React.FC<TextButtonProps> = ({
         <Text variant="light-bold" color={color}>
           {text}
         </Text>
-        {icon && <MaterialIcons name={icon} color={colorCode} size={14} />}
+        {icon ? (
+          <MaterialIcons name={icon} color={colorCode} size={14} />
+        ) : null}
       </Container>
     </Button>
   );

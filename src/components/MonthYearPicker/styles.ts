@@ -36,7 +36,9 @@ export const Content = styled.View`
   margin-top: 12px;
 `;
 
-export const MonthButton = styled.TouchableHighlight.attrs({ underlayColor: '#eee' })<{
+export const MonthButton = styled.TouchableHighlight.attrs({
+  underlayColor: '#eee',
+})<{
   active?: boolean;
 }>`
   flex-grow: 1;
@@ -47,6 +49,7 @@ export const MonthButton = styled.TouchableHighlight.attrs({ underlayColor: '#ee
   height: 40px;
   opacity: ${(props) => (props.disabled ? 0.2 : 1)};
   border-radius: 12px;
-  background-color: ${({ theme, active }) => (active ? theme.colors.lightGray : 'transparent')};
+  background-color: ${({ theme, active }) =>
+    active ? theme.colors.lightGray : 'transparent'};
   margin-bottom: 8px;
 `;

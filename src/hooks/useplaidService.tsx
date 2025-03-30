@@ -1,31 +1,21 @@
-// src/hooks/usePlaidService.tsx
-
 import React, { createContext, useContext, ReactNode, useState } from 'react';
 import { plaidApi } from '../services/pluggy/apiAdapter';
+import { Text, View } from 'react-native';
 
-// Add types for API responses
-interface PlaidAccount {
+// Define types
+export interface PlaidAccount {
   id: string;
+  itemId: string;
   name: string;
-  type: string;
+  official_name?: string; // ✅ Now it's correctly defined
+  type: 'depository' | 'investment' | 'credit' | 'loan' | 'other';
   subtype: string;
   balance: {
-    available: number;
+    available: number | null;
     current: number;
-    limit?: number;
+    limit?: number | null;
+    currency: string;
   };
-  mask: string;
-  institution_name: string;
-}
-
-interface Transaction {
-  id: string;
-  amount: number;
-  date: Date | null;
-  setDate: (date: Date | null) => void;
-  minimumDateWithData: Date | null;
-  description: string;
-  category?: string[];
 }
 
 interface PlaidTransaction {
@@ -38,12 +28,14 @@ interface PlaidTransaction {
   pending: boolean;
 }
 
-// Define the context shape with updated types
 interface PlaidServiceContextType {
   createLinkToken: () => Promise<string>;
   exchangePublicToken: (publicToken: string) => Promise<void>;
+  fetchItemStatus: (
+    itemId: string,
+  ) => Promise<{ status: string; statusDetail: string }>;
   fetchTransactions: () => Promise<PlaidTransaction[]>;
-  fetchAccounts: () => Promise<PlaidAccount[]>;
+  fetchAccounts: (itemId?: string) => Promise<PlaidAccount[]>;
   fetchInvestments: () => Promise<any[]>;
   deleteItem: (itemId: string) => Promise<void>;
   refreshAccountData: (itemId: string) => Promise<void>;
@@ -52,25 +44,29 @@ interface PlaidServiceContextType {
   error: Error | null;
 }
 
-// Create the Plaid service context with a default undefined value
-const PlaidServiceContext = createContext<PlaidServiceContextType | undefined>(undefined);
+// Create context
+const PlaidServiceContext = createContext<PlaidServiceContextType | undefined>(
+  undefined,
+);
 
-// Create a provider component with error handling and loading state
-export const PlaidServiceProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+// Provider component
+export const PlaidServiceProvider: React.FC<{ children: ReactNode }> = ({
+  children,
+}) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
-  // Wrap API calls with loading and error handling
   const createLinkToken = async (): Promise<string> => {
     setIsLoading(true);
     setError(null);
     try {
-      const token = await plaidApi.createLinkToken();
-      return token;
+      return await plaidApi.createLinkToken();
     } catch (err) {
-      const error = err instanceof Error ? err : new Error('Failed to create link token');
-      setError(error);
-      throw error;
+      console.error(err);
+      setError(
+        err instanceof Error ? err : new Error('Failed to create link token'),
+      );
+      return '';
     } finally {
       setIsLoading(false);
     }
@@ -82,9 +78,12 @@ export const PlaidServiceProvider: React.FC<{ children: ReactNode }> = ({ childr
     try {
       await plaidApi.exchangePublicToken(publicToken);
     } catch (err) {
-      const error = err instanceof Error ? err : new Error('Failed to exchange public token');
-      setError(error);
-      throw error;
+      console.error(err);
+      setError(
+        err instanceof Error
+          ? err
+          : new Error('Failed to exchange public token'),
+      );
     } finally {
       setIsLoading(false);
     }
@@ -94,27 +93,50 @@ export const PlaidServiceProvider: React.FC<{ children: ReactNode }> = ({ childr
     setIsLoading(true);
     setError(null);
     try {
-      const transactions = await plaidApi.fetchTransactions();
-      return transactions;
+      return await plaidApi.fetchTransactions();
     } catch (err) {
-      const error = err instanceof Error ? err : new Error('Failed to fetch transactions');
-      setError(error);
-      throw error;
+      console.error(err);
+      setError(
+        err instanceof Error ? err : new Error('Failed to fetch transactions'),
+      );
+      return [];
     } finally {
       setIsLoading(false);
     }
   };
 
-  const fetchAccounts = async (): Promise<PlaidAccount[]> => {
+  const fetchItemStatus = async (
+    itemId: string,
+  ): Promise<{ status: string; statusDetail: string }> => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      return await plaidApi.getItemStatus(itemId);
+    } catch (err) {
+      console.error('Error fetching item status:', err);
+      setError(
+        err instanceof Error ? err : new Error('Failed to fetch item status'),
+      );
+      return { status: 'error', statusDetail: 'Failed to fetch item status' };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchAccounts = async (itemId?: string): Promise<PlaidAccount[]> => {
     setIsLoading(true);
     setError(null);
     try {
       const accounts = await plaidApi.fetchAccounts();
-      return accounts;
+      return itemId
+        ? accounts.filter((account: PlaidAccount) => account.itemId === itemId)
+        : accounts;
     } catch (err) {
-      const error = err instanceof Error ? err : new Error('Failed to fetch accounts');
-      setError(error);
-      throw error;
+      console.error(err);
+      setError(
+        err instanceof Error ? err : new Error('Failed to fetch accounts'),
+      );
+      return [];
     } finally {
       setIsLoading(false);
     }
@@ -124,12 +146,13 @@ export const PlaidServiceProvider: React.FC<{ children: ReactNode }> = ({ childr
     setIsLoading(true);
     setError(null);
     try {
-      const investments = await plaidApi.fetchInvestments();
-      return investments;
+      return await plaidApi.fetchInvestments();
     } catch (err) {
-      const error = err instanceof Error ? err : new Error('Failed to fetch investments');
-      setError(error);
-      throw error;
+      console.error(err);
+      setError(
+        err instanceof Error ? err : new Error('Failed to fetch investments'),
+      );
+      return [];
     } finally {
       setIsLoading(false);
     }
@@ -141,9 +164,8 @@ export const PlaidServiceProvider: React.FC<{ children: ReactNode }> = ({ childr
     try {
       await plaidApi.deleteItem(itemId);
     } catch (err) {
-      const error = err instanceof Error ? err : new Error('Failed to delete item');
-      setError(error);
-      throw error;
+      console.error(err);
+      setError(err instanceof Error ? err : new Error('Failed to delete item'));
     } finally {
       setIsLoading(false);
     }
@@ -155,9 +177,12 @@ export const PlaidServiceProvider: React.FC<{ children: ReactNode }> = ({ childr
     try {
       await plaidApi.refreshAccountData(itemId);
     } catch (err) {
-      const error = err instanceof Error ? err : new Error('Failed to refresh account data');
-      setError(error);
-      throw error;
+      console.error(err);
+      setError(
+        err instanceof Error
+          ? err
+          : new Error('Failed to refresh account data'),
+      );
     } finally {
       setIsLoading(false);
     }
@@ -167,12 +192,15 @@ export const PlaidServiceProvider: React.FC<{ children: ReactNode }> = ({ childr
     setIsLoading(true);
     setError(null);
     try {
-      const details = await plaidApi.getInstitutionDetails(institutionId);
-      return details;
+      return await plaidApi.getInstitutionDetails(institutionId);
     } catch (err) {
-      const error = err instanceof Error ? err : new Error('Failed to get institution details');
-      setError(error);
-      throw error;
+      console.error(err);
+      setError(
+        err instanceof Error
+          ? err
+          : new Error('Failed to get institution details'),
+      );
+      return {};
     } finally {
       setIsLoading(false);
     }
@@ -181,6 +209,7 @@ export const PlaidServiceProvider: React.FC<{ children: ReactNode }> = ({ childr
   const value: PlaidServiceContextType = {
     createLinkToken,
     exchangePublicToken,
+    fetchItemStatus,
     fetchTransactions,
     fetchAccounts,
     fetchInvestments,
@@ -188,21 +217,30 @@ export const PlaidServiceProvider: React.FC<{ children: ReactNode }> = ({ childr
     refreshAccountData,
     getInstitutionDetails,
     isLoading,
-    error
+    error,
   };
 
   return (
     <PlaidServiceContext.Provider value={value}>
-      {children}
+      <View style={{ flex: 1 }}>
+        {error ? <Text style={{ color: 'red' }}>{error.message}</Text> : null}
+        {isLoading ? <Text>Loading Plaid Service...</Text> : null}
+        {children}
+      </View>
     </PlaidServiceContext.Provider>
   );
 };
 
-// Custom hook to use the Plaid context
+
+// Custom hook
 export const usePlaidContext = (): PlaidServiceContextType => {
   const context = useContext(PlaidServiceContext);
-  if (context === undefined) {
-    throw new Error('usePlaidContext must be used within a PlaidServiceProvider');
+  if (!context) {
+    throw new Error(
+      'usePlaidContext must be used within a PlaidServiceProvider',
+    );
   }
   return context;
 };
+
+export default PlaidServiceProvider;

@@ -28,10 +28,10 @@ You can see the layout of this project in [Figma](https://www.figma.com/file/OMr
 
 ```bash
 # Clone this repository
-$ git clone https://github.com/Joaomlg/finance-app
+$ git clone https://github.com/chinmay091/ExpenseEase
 
 # Go to project path
-$ cd finance-app
+$ cd finance-app-1.1.8
 
 # Install dependences
 $ npm install

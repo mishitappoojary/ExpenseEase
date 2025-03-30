@@ -1,6 +1,11 @@
 import { CurrencyCode } from './common';
 
-export type PlaidAccountType = 'depository' | 'credit' | 'loan' | 'investment' | 'other';
+export type PlaidAccountType =
+  | 'depository'
+  | 'credit'
+  | 'loan'
+  | 'investment'
+  | 'other';
 
 export type PlaidAccountSubType =
   | 'checking'
@@ -14,6 +19,7 @@ export type PlaidAccountSubType =
   | 'other';
 
 export type Account = {
+  itemId: string;
   account_id: string;
   name: string;
   official_name?: string;

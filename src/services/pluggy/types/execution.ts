@@ -14,7 +14,8 @@ const CONNECTOR_EXECUTION_STATUSES = [
   'IDENTITY_IN_PROGRESS',
 ] as const;
 
-export type ConnectorExecutionStatus = typeof CONNECTOR_EXECUTION_STATUSES[number];
+export type ConnectorExecutionStatus =
+  (typeof CONNECTOR_EXECUTION_STATUSES)[number];
 
 const EXECUTION_ERROR_CODES = [
   'INVALID_CREDENTIALS',
@@ -30,7 +31,7 @@ const EXECUTION_ERROR_CODES = [
   'USER_INPUT_TIMEOUT',
 ] as const;
 
-export type ExecutionErrorCode = typeof EXECUTION_ERROR_CODES[number];
+export type ExecutionErrorCode = (typeof EXECUTION_ERROR_CODES)[number];
 
 export const EXECUTION_FINISHED_STATUSES = [
   ...EXECUTION_ERROR_CODES,
@@ -40,7 +41,8 @@ export const EXECUTION_FINISHED_STATUSES = [
   'PARTIAL_SUCCESS',
 ] as const;
 
-export type ExecutionFinishedStatus = typeof EXECUTION_FINISHED_STATUSES[number];
+export type ExecutionFinishedStatus =
+  (typeof EXECUTION_FINISHED_STATUSES)[number];
 
 const EXECUTION_STATUSES = [
   'CREATING',
@@ -50,7 +52,7 @@ const EXECUTION_STATUSES = [
   ...EXECUTION_FINISHED_STATUSES,
 ] as const;
 
-export type ExecutionStatus = typeof EXECUTION_STATUSES[number];
+export type ExecutionStatus = (typeof EXECUTION_STATUSES)[number];
 
 export type ExecutionErrorResultMetadata = {
   /** a provider id to relate the execution with an item, for example 'user_id'. useful to match webhook notifications with items */

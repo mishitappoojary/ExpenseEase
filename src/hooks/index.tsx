@@ -1,7 +1,11 @@
-import React from 'react';
-import { PlaidServiceProvider } from './useplaidService'; // Updated to use PlaidService
+import React, { ReactNode } from 'react';
+import { PlaidServiceProvider } from './useplaidService'; // Ensure correct casing in import
 
-const HooksProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+interface HooksProviderProps {
+  children: ReactNode;
+}
+
+const HooksProvider: React.FC<HooksProviderProps> = ({ children }) => {
   return <PlaidServiceProvider>{children}</PlaidServiceProvider>;
 };
 

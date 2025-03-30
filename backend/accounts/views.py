@@ -1,280 +1,164 @@
-# backend/accounts/views.py
-from rest_framework.decorators import api_view, permission_classes
+from django.contrib.auth import get_user_model, authenticate
+from django.contrib.auth.hashers import make_password
+from rest_framework import status, permissions
+from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, AllowAny
-from rest_framework import status
-from django.contrib.auth.models import User
-from django.contrib.auth.password_validation import validate_password
-from django.core.exceptions import ValidationError
-from .models import UserProfile, UserPreference, Notification
-import logging
+from rest_framework.authtoken.models import Token
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.permissions import IsAuthenticated
 
-logger = logging.getLogger(__name__)
+from backend.accounts.models import UserProfile, UserPreference, Notification
 
-@api_view(['POST'])
-@permission_classes([AllowAny])
-def register_user(request):
-    try:
-        username = request.data.get('username')
-        email = request.data.get('email')
-        password = request.data.get('password')
-        
-        # Validate input
-        if not username or not email or not password:
-            return Response({'error': 'Please provide username, email and password'}, 
-                            status=status.HTTP_400_BAD_REQUEST)
-        
-        # Check if user already exists
-        if User.objects.filter(username=username).exists():
-            return Response({'error': 'Username already exists'}, 
-                            status=status.HTTP_400_BAD_REQUEST)
-        
-        if User.objects.filter(email=email).exists():
-            return Response({'error': 'Email already exists'}, 
-                            status=status.HTTP_400_BAD_REQUEST)
-        
-        # Validate password
-        try:
-            validate_password(password)
-        except ValidationError as e:
-            return Response({'error': e.messages}, 
-                            status=status.HTTP_400_BAD_REQUEST)
-        
-        # Create user
-        user = User.objects.create_user(username=username, email=email, password=password)
-        
-        # Create user profile
-        UserProfile.objects.create(user=user)
-        
-        # Create default preferences
-        UserPreference.objects.create(user=user)
-        
-        return Response({'message': 'User registered successfully'}, 
-                        status=status.HTTP_201_CREATED)
-    except Exception as e:
-        logger.error(f"Error registering user: {str(e)}")
-        return Response({'error': str(e)}, 
-                        status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+User = get_user_model()
 
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def user_profile(request):
-    try:
+class LogoutView(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        request.user.auth_token.delete()
+        return Response({"message": "Logged out successfully."}, status=status.HTTP_200_OK)
+
+class UserPreferencesView(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        preferences, _ = UserPreference.objects.get_or_create(user=request.user)
+        return Response({
+            "email_notifications": preferences.email_notifications,
+            "push_notifications": preferences.push_notifications,
+            "theme": preferences.theme,
+            "language": preferences.language
+        }, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        preferences, _ = UserPreference.objects.get_or_create(user=request.user)
+        preferences.email_notifications = request.data.get("email_notifications", preferences.email_notifications)
+        preferences.push_notifications = request.data.get("push_notifications", preferences.push_notifications)
+        preferences.theme = request.data.get("theme", preferences.theme)
+        preferences.language = request.data.get("language", preferences.language)
+        preferences.save()
+
+        return Response({"message": "Preferences updated successfully."}, status=status.HTTP_200_OK)
+
+class UserProfileView(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        return Response({
+            "email": request.user.email,
+            "username": request.user.username
+        })
+
+    def put(self, request):
         user = request.user
-        profile = UserProfile.objects.get(user=user)
-        
-        response_data = {
-            'username': user.username,
-            'email': user.email,
-            'first_name': user.first_name,
-            'last_name': user.last_name,
-            'date_joined': user.date_joined,
-            'profile': {
-                'phone_number': profile.phone_number,
-                'address': profile.address,
-                'city': profile.city,
-                'state': profile.state,
-                'zip_code': profile.zip_code,
-                'country': profile.country,
-                'profile_picture': profile.profile_picture.url if profile.profile_picture else None,
-            }
-        }
-        
-        return Response(response_data)
-    except Exception as e:
-        logger.error(f"Error fetching user profile: {str(e)}")
-        return Response({'error': str(e)}, 
-                        status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        username = request.data.get("username", user.username)
+        email = request.data.get("email", user.email)
 
-@api_view(['PUT'])
-@permission_classes([IsAuthenticated])
-def update_profile(request):
-    try:
-        user = request.user
-        profile = UserProfile.objects.get(user=user)
-        
-        # Update user fields
-        if 'first_name' in request.data:
-            user.first_name = request.data['first_name']
-        if 'last_name' in request.data:
-            user.last_name = request.data['last_name']
-        if 'email' in request.data:
-            user.email = request.data['email']
-        
+        if email != user.email and User.objects.filter(email=email).exists():
+            return Response({"error": "Email is already in use."}, status=status.HTTP_400_BAD_REQUEST)
+
+        user.username = username
+        user.email = email
         user.save()
-        
-        # Update profile fields
-        if 'phone_number' in request.data:
-            profile.phone_number = request.data['phone_number']
-        if 'address' in request.data:
-            profile.address = request.data['address']
-        if 'city' in request.data:
-            profile.city = request.data['city']
-        if 'state' in request.data:
-            profile.state = request.data['state']
-        if 'zip_code' in request.data:
-            profile.zip_code = request.data['zip_code']
-        if 'country' in request.data:
-            profile.country = request.data['country']
-        if 'profile_picture' in request.FILES:
-            profile.profile_picture = request.FILES['profile_picture']
-        
-        profile.save()
-        
-        return Response({'message': 'Profile updated successfully'})
-    except Exception as e:
-        logger.error(f"Error updating user profile: {str(e)}")
-        return Response({'error': str(e)}, 
-                        status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def change_password(request):
-    try:
+        return Response({"message": "Profile updated successfully."}, status=status.HTTP_200_OK)
+
+class UserStatisticsView(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        stats = {
+            "total_transactions": 100,  # TODO: Replace with actual query
+            "total_spent": 5000.75,  # TODO: Replace with actual calculation
+        }
+        return Response(stats, status=status.HTTP_200_OK)
+
+class LinkAccountView(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        account_id = request.data.get("account_id")
+        if not account_id:
+            return Response({"error": "Account ID is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # TODO: Implement account linking logic
+        return Response({"message": f"Account {account_id} linked successfully."}, status=status.HTTP_200_OK)
+
+class UnlinkAccountView(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, account_id):
+        # TODO: Implement account unlinking logic
+        return Response({"message": f"Account {account_id} unlinked successfully."}, status=status.HTTP_200_OK)
+
+class NotificationsView(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
+        return Response([
+            {"id": n.id, "message": n.message, "read": n.read, "created_at": n.created_at}
+            for n in notifications
+        ], status=status.HTTP_200_OK)
+
+class MarkNotificationReadView(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, notification_id):
+        try:
+            notification = Notification.objects.get(id=notification_id, user=request.user)
+            notification.read = True
+            notification.save()
+            return Response({"message": "Notification marked as read."}, status=status.HTTP_200_OK)
+        except Notification.DoesNotExist:
+            return Response({"error": "Notification not found."}, status=status.HTTP_404_NOT_FOUND)
+
+class MarkAllNotificationsReadView(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        request.user.notifications.update(read=True)
+        return Response({"message": "All notifications marked as read."}, status=status.HTTP_200_OK)
+    
+class UpdateProfileView(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def put(self, request):
+        user = request.user
+        username = request.data.get("username", user.username)
+        email = request.data.get("email", user.email)
+
+        if email != user.email and User.objects.filter(email=email).exists():
+            return Response({"error": "Email is already in use."}, status=status.HTTP_400_BAD_REQUEST)
+
+        user.username = username
+        user.email = email
+        user.save()
+
+        return Response({"message": "Profile updated successfully."}, status=status.HTTP_200_OK)
+
+class ChangePasswordView(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
         user = request.user
         old_password = request.data.get('old_password')
         new_password = request.data.get('new_password')
-        
-        # Check if old password is correct
+
         if not user.check_password(old_password):
-            return Response({'error': 'Old password is incorrect'}, 
-                            status=status.HTTP_400_BAD_REQUEST)
-        
-        # Validate new password
-        try:
-            validate_password(new_password)
-        except ValidationError as e:
-            return Response({'error': e.messages}, 
-                            status=status.HTTP_400_BAD_REQUEST)
-        
-        # Set new password
+            return Response({"error": "Old password is incorrect."}, status=status.HTTP_400_BAD_REQUEST)
+
         user.set_password(new_password)
         user.save()
-        
-        return Response({'message': 'Password changed successfully'})
-    except Exception as e:
-        logger.error(f"Error changing password: {str(e)}")
-        return Response({'error': str(e)}, 
-                        status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def user_preferences(request):
-    try:
-        user = request.user
-        preferences, created = UserPreference.objects.get_or_create(user=user)
-        
-        response_data = {
-            'currency': preferences.currency,
-            'theme': preferences.theme,
-            'language': preferences.language,
-            'notifications_enabled': preferences.notifications_enabled,
-            'email_notifications': preferences.email_notifications,
-            'push_notifications': preferences.push_notifications,
-        }
-        
-        return Response(response_data)
-    except Exception as e:
-        logger.error(f"Error fetching user preferences: {str(e)}")
-        return Response({'error': str(e)}, 
-                        status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-@api_view(['PUT'])
-@permission_classes([IsAuthenticated])
-def update_preferences(request):
-    try:
-        user = request.user
-        preferences, created = UserPreference.objects.get_or_create(user=user)
-        
-        if 'currency' in request.data:
-            preferences.currency = request.data['currency']
-        if 'theme' in request.data:
-            preferences.theme = request.data['theme']
-        if 'language' in request.data:
-            preferences.language = request.data['language']
-        if 'notifications_enabled' in request.data:
-            preferences.notifications_enabled = request.data['notifications_enabled']
-        if 'email_notifications' in request.data:
-            preferences.email_notifications = request.data['email_notifications']
-        if 'push_notifications' in request.data:
-            preferences.push_notifications = request.data['push_notifications']
-        
-        preferences.save()
-        
-        return Response({'message': 'Preferences updated successfully'})
-    except Exception as e:
-        logger.error(f"Error updating user preferences: {str(e)}")
-        return Response({'error': str(e)}, 
-                        status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def user_statistics(request):
-    # Implement user statistics logic
-    return Response({'message': 'User statistics endpoint not yet implemented'})
-
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def link_account(request):
-    # Implement account linking logic
-    return Response({'message': 'Account linking endpoint not yet implemented'})
-
-@api_view(['DELETE'])
-@permission_classes([IsAuthenticated])
-def unlink_account(request, account_id):
-    # Implement account unlinking logic
-    return Response({'message': 'Account unlinking endpoint not yet implemented'})
-
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def notifications(request):
-    try:
-        user = request.user
-        notifications = Notification.objects.filter(user=user).order_by('-created_at')
-        
-        response_data = []
-        for notification in notifications:
-            response_data.append({
-                'id': notification.id,
-                'message': notification.message,
-                'type': notification.notification_type,
-                'read': notification.read,
-                'created_at': notification.created_at,
-            })
-        
-        return Response(response_data)
-    except Exception as e:
-        logger.error(f"Error fetching notifications: {str(e)}")
-        return Response({'error': str(e)}, 
-                        status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def mark_notification_read(request, notification_id):
-    try:
-        user = request.user
-        notification = Notification.objects.get(id=notification_id, user=user)
-        notification.read = True
-        notification.save()
-        
-        return Response({'message': 'Notification marked as read'})
-    except Notification.DoesNotExist:
-        return Response({'error': 'Notification not found'}, 
-                        status=status.HTTP_404_NOT_FOUND)
-    except Exception as e:
-        logger.error(f"Error marking notification as read: {str(e)}")
-        return Response({'error': str(e)}, 
-                        status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def mark_all_notifications_read(request):
-    try:
-        user = request.user
-        Notification.objects.filter(user=user, read=False).update(read=True)
-        
-        return Response({'message': 'All notifications marked as read'})
-    except Exception as e:
-        logger.error(f"Error marking all notifications as read: {str(e)}")
-        return Response({'error': str(e)}, 
-                        status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({"message": "Password changed successfully."}, status=status.HTTP_200_OK)

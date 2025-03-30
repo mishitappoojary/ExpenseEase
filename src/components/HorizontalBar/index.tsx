@@ -1,7 +1,7 @@
-import React, { useContext } from 'react';
+import React from 'react';
 import { ViewProps } from 'react-native';
 import { useTheme } from 'styled-components/native';
-import AppContext from '../../contexts/AppContext';
+import { useAppContext } from '../../contexts/AppContext';
 import light from '../../theme/light';
 import { BarContainer, Bar } from './styles';
 
@@ -17,7 +17,7 @@ const HorizontalBar: React.FC<HorizontalBarProps> = ({
   surplusGrow,
   ...viewProps
 }) => {
-  const { hideValues } = useContext(AppContext);
+  const { hideValues } = useAppContext();
 
   const theme = useTheme();
 
@@ -31,7 +31,7 @@ const HorizontalBar: React.FC<HorizontalBarProps> = ({
   return (
     <BarContainer flexGrow={containerGrow} {...viewProps}>
       <Bar backgroundColor={barColor} flexGrow={mainBarGrow} />
-      <Bar backgroundColor={theme.colors.error} flexGrow={surplusBarGrow} />
+      <Bar backgroundColor={theme?.colors?.error} flexGrow={surplusBarGrow} />
     </BarContainer>
   );
 };

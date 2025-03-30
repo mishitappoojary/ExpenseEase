@@ -1,76 +1,75 @@
-import {
-  Inter_300Light,
-  Inter_400Regular,
-  Inter_700Bold,
-  useFonts,
-} from '@expo-google-fonts/inter';
-import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, View } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import moment from 'moment';
-// import 'moment/locale/en';
-import React, { useEffect } from 'react';
-import { SafeAreaView, useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import Toast from 'react-native-toast-message';
 import { ThemeProvider } from 'styled-components/native';
-import { TransactionProvider } from './src/contexts/TransactionContext';
-import AuthenticationProvider from './src/components/Authentication';
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
+import Toast from 'react-native-toast-message';
+
 import { AppContextProvider } from './src/contexts/AppContext';
 import HooksProvider from './src/hooks/index';
 import Routes from './src/routes';
 import dark from './src/theme/dark';
 import light from './src/theme/light';
-// Import the PlaidServiceProvider
-import { PlaidServiceProvider } from './src/hooks/useplaidService'; // Adjust the import path as needed
-
-moment.locale('en');
+import { PlaidServiceProvider } from './src/hooks/useplaidService';
 
 SplashScreen.preventAutoHideAsync();
 
 export default function App() {
-  const [fontsLoaded] = useFonts({
-    Inter_300Light,
-    Inter_400Regular,
-    Inter_700Bold,
-  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
-  const colorScheme = useColorScheme();
-
-  const theme = colorScheme === 'dark' ? dark : light;
+  const checkAuth = async () => {
+    try {
+      const token = await AsyncStorage.getItem('access_token'); // Ensure consistency
+      console.log('🔍 Retrieved access_token:', token);
+      setIsAuthenticated(!!token);
+    } catch (error) {
+      console.error('❌ Failed to retrieve access token:', error);
+      setIsAuthenticated(false);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    if (fontsLoaded) {
+    checkAuth();
+  }, []);
+
+  useEffect(() => {
+    if (!isLoading) {
       SplashScreen.hideAsync();
     }
-  }, [fontsLoaded]);
+  }, [isLoading]);
 
-  if (!fontsLoaded) {
-    return null;
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#0000ff" />
+      </View>
+    );
   }
 
   return (
-    <ThemeProvider theme={theme}>
-      <AuthenticationProvider>
-        <AppContextProvider>
-          {/* Add PlaidServiceProvider here */}
-          <PlaidServiceProvider>
-            <TransactionProvider>
-              <HooksProvider>
-                <GestureHandlerRootView style={{ flex: 1 }}>
-                  <BottomSheetModalProvider>
-                    <SafeAreaView style={{ flex: 1 }}>
-                      <StatusBar style="light" backgroundColor={theme.colors.primary} />
-                      <Routes />
-                      <Toast />
-                    </SafeAreaView>
-                  </BottomSheetModalProvider>
-                </GestureHandlerRootView>
-              </HooksProvider>
-            </TransactionProvider>
-          </PlaidServiceProvider>
-        </AppContextProvider>
-      </AuthenticationProvider>
-    </ThemeProvider>
+    <NavigationContainer>
+      <PlaidServiceProvider>
+        <ThemeProvider theme={dark}> 
+          <AppContextProvider>
+            <HooksProvider>
+              <GestureHandlerRootView style={{ flex: 1 }}>
+                <BottomSheetModalProvider>
+                  <StatusBar style="light" backgroundColor="#000" />
+                  <Routes />
+                  <Toast />
+                </BottomSheetModalProvider>
+              </GestureHandlerRootView>
+            </HooksProvider>
+          </AppContextProvider>
+        </ThemeProvider>
+      </PlaidServiceProvider>
+    </NavigationContainer>
   );
 }

@@ -24,7 +24,7 @@ const TextVariants = [
   'extra-light',
 ] as const;
 
-type Variant = typeof TextVariants[number];
+type Variant = (typeof TextVariants)[number];
 
 type COLOR = keyof typeof light.colors;
 
@@ -34,11 +34,21 @@ export interface TextProps extends RNTextProps {
   transform?: TextStyle['textTransform'];
 }
 
-const Text: React.FC<TextProps> = ({ variant, color, style, transform, ...rnProps }) => {
+const Text: React.FC<TextProps> = ({
+  variant,
+  color,
+  style,
+  transform,
+  ...rnProps
+}) => {
   const theme = useTheme();
 
   const appendStyle = transform ? { textTransform: transform } : {};
-  const props = { color: theme.colors[color || 'text'], style: [style, appendStyle], ...rnProps };
+  const props = {
+    color: theme.colors[color || 'text'],
+    style: [style, appendStyle],
+    ...rnProps,
+  };
 
   switch (variant) {
     case 'default-bold':

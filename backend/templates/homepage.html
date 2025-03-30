@@ -1,10 +1,9 @@
-<!-- backend/templates/homepage.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ExpenseEase - Financial Management</title>
+    <title>ExpenseEase - API Testing</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -38,11 +37,21 @@
         }
         .get { background-color: #61affe; color: white; }
         .post { background-color: #49cc90; color: white; }
+        .delete { background-color: #ff6f61; color: white; }
     </style>
+    <script>
+        function updateURL(endpointId, inputId) {
+            const inputValue = document.getElementById(inputId).value;
+            if (inputValue) {
+                const endpoint = document.getElementById(endpointId);
+                endpoint.href = endpoint.href.replace(/{.*?}/, inputValue);
+            }
+        }
+    </script>
 </head>
 <body>
     <h1>Welcome to ExpenseEase</h1>
-    <p>Your comprehensive financial management solution.</p>
+    <p>Test the API endpoints below.</p>
     
     <div class="api-section">
         <h2>API Endpoints</h2>
@@ -52,26 +61,52 @@
             <a href="/api/plaid/">/api/plaid/</a>
             <p>Dashboard with financial overview</p>
         </div>
-        
+
         <div class="endpoint">
             <span class="method post">POST</span>
             <a href="/api/plaid/create-link-token/">/api/plaid/create-link-token/</a>
             <p>Create a Plaid Link token</p>
         </div>
-        
+
         <div class="endpoint">
             <span class="method post">POST</span>
             <a href="/api/plaid/exchange-public-token/">/api/plaid/exchange-public-token/</a>
             <p>Exchange a public token for an access token</p>
         </div>
-        
+
         <div class="endpoint">
             <span class="method get">GET</span>
-            <a href="/admin/">/admin/</a>
-            <p>Django admin interface</p>
+            <a id="institution-link" href="/api/plaid/institutions/{institution_id}/">/api/plaid/institutions/{institution_id}/</a>
+            <p>Retrieve institution details</p>
+            <input type="text" id="institution-input" placeholder="Enter institution_id">
+            <button onclick="updateURL('institution-link', 'institution-input')">Go</button>
+        </div>
+
+        <div class="endpoint">
+            <span class="method get">GET</span>
+            <a href="/api/plaid/institutions/">/api/plaid/institutions/</a>
+            <p>Retrieve all Plaid institutions</p>
+        </div>
+
+        <div class="endpoint">
+            <span class="method get">GET</span>
+            <a href="/api/plaid/transactions/">/api/plaid/transactions/</a>
+            <p>Retrieve transactions</p>
+        </div>
+
+        <div class="endpoint">
+            <span class="method get">GET</span>
+            <a href="/api/plaid/accounts/">/api/plaid/accounts/</a>
+            <p>Retrieve accounts</p>
+        </div>
+
+        <div class="endpoint">
+            <span class="method delete">DELETE</span>
+            <a id="delete-item" href="/api/plaid/items/{item_id}/">/api/plaid/items/{item_id}/</a>
+            <p>Delete a Plaid item</p>
+            <input type="text" id="delete-item-input" placeholder="Enter item_id">
+            <button onclick="updateURL('delete-item', 'delete-item-input')">Go</button>
         </div>
     </div>
-    
-    <p>For more information, please refer to the API documentation.</p>
 </body>
 </html>

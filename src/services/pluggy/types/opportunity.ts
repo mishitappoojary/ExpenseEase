@@ -11,10 +11,10 @@ export const OPPORTUNITY_TYPES = [
   'OTHER',
 ] as const;
 
-export type OpportunityType = typeof OPPORTUNITY_TYPES[number];
+export type OpportunityType = (typeof OPPORTUNITY_TYPES)[number];
 
 export const OPPORTUNITY_DATE_TYPES = ['YEARLY', 'MONTHLY'] as const;
-export type OpportunityDateType = typeof OPPORTUNITY_DATE_TYPES[number];
+export type OpportunityDateType = (typeof OPPORTUNITY_DATE_TYPES)[number];
 
 export type Opportunity = {
   /* Total pre-approved money */

@@ -13,3 +13,5 @@ export * from './identity';
 export * from './webhook';
 export * from './opportunity';
 export * from './execution';
+export * from './income';
+export * from './liabilities';

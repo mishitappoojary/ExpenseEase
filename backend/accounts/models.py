@@ -1,6 +1,8 @@
 # backend/accounts/models.py
 from django.db import models
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
+
+User = get_user_model()  # ✅ Use custom user model
 
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
@@ -69,6 +71,7 @@ class Notification(models.Model):
     notification_type = models.CharField(max_length=10, choices=NOTIFICATION_TYPES, default='info')
     read = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
-    
+    read_at = models.DateTimeField(blank=True, null=True)  # ✅ Track when notification is read
+
     def __str__(self):
         return f"{self.user.username} - {self.message[:30]}..."

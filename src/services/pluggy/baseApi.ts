@@ -32,12 +32,20 @@ export class BaseApi {
   }
 
   // Generic function to handle all POST requests
-  protected async postRequest<T>(url: string, body: Record<string, unknown>, includeAccessToken = true): Promise<T> {
+  protected async postRequest<T>(
+    url: string,
+    body: Record<string, unknown>,
+    includeAccessToken = true,
+  ): Promise<T> {
     try {
       const requestBody = {
         client_id: this.clientId,
         secret: this.clientSecret,
-        ...(includeAccessToken && this.accessToken ? { access_token: this.accessToken } : {}),
+        ...(includeAccessToken
+          ? this.accessToken
+            ? { access_token: this.accessToken }
+            : {}
+          : {}),
         ...body,
       };
 

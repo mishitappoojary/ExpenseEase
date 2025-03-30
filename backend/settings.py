@@ -1,4 +1,8 @@
 # settings.py
+import os
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
 
 DJANGO_APPS = [
     "django.contrib.admin",
@@ -28,11 +32,28 @@ LOCAL_APPS = [
     "backend.plaid",
 ]
 
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [BASE_DIR / "backend" / "templates"],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        },
+    },
+]
+
+
 CLIENT_NAME = "ExpenseEase"
 
 # Plaid API settings
-PLAID_PRODUCTS = 'transactions'  # comma-separated list of Plaid products
-PLAID_COUNTRY_CODES = 'US'  # comma-separated list of country codes
+PLAID_PRODUCTS = ["transactions", "auth", "identity"] # comma-separated list of Plaid products
+PLAID_COUNTRY_CODES = ["US", "CA"]  # comma-separated list of country codes
 PLAID_ENV = 'sandbox'  # sandbox or production
 APP_NAME = "ExpenseEase"
 
@@ -53,9 +74,10 @@ INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 # REST Framework settings
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.SessionAuthentication',
-        'rest_framework.authentication.BasicAuthentication',
-        'rest_framework.authentication.TokenAuthentication',
+        # 'rest_framework.authentication.SessionAuthentication',
+        # 'rest_framework.authentication.BasicAuthentication',
+        # 'rest_framework.authentication.TokenAuthentication',
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
@@ -66,6 +88,7 @@ REST_FRAMEWORK = {
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://localhost:19006",  # Expo default port
+    "http://10.0.2.2:8000",
 ]
 
 # allauth settings

@@ -40,17 +40,28 @@ export type DeserializedInvestment = Omit<
   transactions: DeserializedInvestmentTransaction[];
 };
 
-type DeserializedConnectorCredential = Omit<ConnectorCredential, 'expiresAt'> & {
+type DeserializedConnectorCredential = Omit<
+  ConnectorCredential,
+  'expiresAt'
+> & {
   expiresAt?: string;
 };
 
-export type DeserializedItemProductState = Omit<ItemProductState, 'lastUpdatedAt'> & {
+export type DeserializedItemProductState = Omit<
+  ItemProductState,
+  'lastUpdatedAt'
+> & {
   lastUpdatedAt: string | null;
 };
 
 export type DeserializedItemProductsStatusDetail = Omit<
   ItemProductsStatusDetail,
-  'accounts' | 'creditCards' | 'transactions' | 'investments' | 'identity' | 'paymentData'
+  | 'accounts'
+  | 'creditCards'
+  | 'transactions'
+  | 'investments'
+  | 'identity'
+  | 'paymentData'
 > & {
   accounts: DeserializedItemProductState | null;
   creditCards: DeserializedItemProductState | null;

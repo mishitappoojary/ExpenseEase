@@ -10,7 +10,7 @@ const LoadingModal: React.FC<LoadingModalProps> = ({ text }) => {
   const anim = useRef(new Animated.Value(1));
 
   useEffect(() => {
-    Animated.loop(
+    const animation = Animated.loop(
       Animated.sequence([
         Animated.timing(anim.current, {
           toValue: 1.25,
@@ -24,11 +24,15 @@ const LoadingModal: React.FC<LoadingModalProps> = ({ text }) => {
           useNativeDriver: true,
         }),
       ]),
-    ).start();
+    );
+
+    animation.start();
+
+    return () => animation.stop(); // Cleanup on unmount
   }, []);
 
   return (
-    <Modal visible animationType="slide">
+    <Modal visible animationType="fade" transparent>
       <Container>
         <Animated.View style={{ transform: [{ scale: anim.current }] }}>
           <Image
@@ -36,11 +40,13 @@ const LoadingModal: React.FC<LoadingModalProps> = ({ text }) => {
             style={{ height: 180, width: 180 }}
           />
         </Animated.View>
-        {text && (
-          <StatusText variant="title" color="textWhite">
+        {text ? (
+          <StatusText
+            style={{ fontSize: 20, fontWeight: 'bold', color: 'white' }}
+          >
             {text}
           </StatusText>
-        )}
+        ) : null}
       </Container>
     </Modal>
   );

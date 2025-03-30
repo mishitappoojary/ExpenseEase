@@ -1,12 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Camera } from 'expo-camera'; // Import camera functionality
 import { useNavigation } from '@react-navigation/native';
-import { View, TouchableOpacity, Animated, StyleSheet, Text } from 'react-native';
+import {
+  View,
+  TouchableOpacity,
+  Animated,
+  StyleSheet,
+  Text,
+} from 'react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
 
 const AddTransactionButton: React.FC = () => {
   // Initialize state with null, but expect it to later hold a boolean
-  const [hasCameraPermission, setCameraPermission] = useState<boolean | null>(null);
+  const [hasCameraPermission, setCameraPermission] = useState<boolean | null>(
+    null,
+  );
   const [isChecked, setIsChecked] = useState(false);
   const [animation] = useState(new Animated.Value(0));
 
@@ -14,14 +22,14 @@ const AddTransactionButton: React.FC = () => {
 
   const requestCameraPermission = async () => {
     const { status } = await Camera.requestCameraPermissionsAsync();
-    setCameraPermission(status === 'granted');
     if (status === 'granted') {
-      navigation.navigate('CameraScreen'); // Replace this with your camera functionality
+      setCameraPermission(true);
+      navigation.navigate('CameraScreen');
     } else {
+      setCameraPermission(false);
       console.log('Camera permission not granted');
     }
   };
-
   const toggleMenu = () => {
     setIsChecked(!isChecked);
     Animated.timing(animation, {
@@ -50,9 +58,9 @@ const AddTransactionButton: React.FC = () => {
   return (
     <View style={styles.container}>
       <TouchableOpacity style={styles.addButton} onPress={toggleMenu}>
-        <Text style={styles.addButtonText}>+</Text>
+        <Text style={styles.addButtonText}>{'+'}</Text>
       </TouchableOpacity>
-      {isChecked && (
+      {isChecked ? (
         <>
           <Animated.View style={[styles.iconContainer, iconStyle(0)]}>
             <TouchableOpacity onPress={requestCameraPermission}>
@@ -62,47 +70,49 @@ const AddTransactionButton: React.FC = () => {
             </TouchableOpacity>
           </Animated.View>
           <Animated.View style={[styles.iconContainer, iconStyle(1)]}>
-            <TouchableOpacity onPress={() => navigation.navigate('AddTransaction')}>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('AddTransaction')}
+            >
               <View style={styles.iconBackground}>
                 <FontAwesome5 name="keyboard" size={20} color="#FFF" />
               </View>
             </TouchableOpacity>
           </Animated.View>
         </>
-      )}
+      ) : null}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    position: 'absolute',
-    bottom: 50,
-    right: 20,
-    alignItems: 'center',
-  },
   addButton: {
     backgroundColor: '#40E0D0',
     borderRadius: 50,
-    padding: 15,
     elevation: 5,
+    padding: 15,
   },
   addButtonText: {
-    fontSize: 24,
     color: '#FFF',
+    fontSize: 24,
   },
-  iconContainer: {
-    position: 'absolute',
-    right: 0,
+  container: {
     alignItems: 'center',
-    marginBottom: 20,
+    bottom: 50,
+    position: 'absolute',
+    right: 20,
   },
   iconBackground: {
+    alignItems: 'center',
     backgroundColor: '#40BEBE',
     borderRadius: 50,
-    padding: 10,
-    alignItems: 'center',
     justifyContent: 'center',
+    padding: 10,
+  },
+  iconContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+    position: 'absolute',
+    right: 0,
   },
 });
 

@@ -54,15 +54,15 @@ class PlaidConfig:
         """
         Returns a list of Products objects.
         """
-        products = settings.PLAID_PRODUCTS.split(",")
-        return [Products(product) for product in products]
+        return [Products(product) for product in settings.PLAID_PRODUCTS]
+
 
     def _get_country_codes(self) -> list[CountryCode]:
         """
         Returns a list of CountryCode objects.
         """
-        country_codes = settings.PLAID_COUNTRY_CODES.split(",")
-        return list(map(lambda x: CountryCode(x), country_codes))
+        return [CountryCode(code) for code in settings.PLAID_COUNTRY_CODES]
+
 
     def _get_redirect_uri(self) -> str:
         """

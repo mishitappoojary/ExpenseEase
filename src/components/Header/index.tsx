@@ -43,30 +43,48 @@ const Header: React.FC<HeaderProps> = ({
 
   return (
     <Container {...viewProps}>
-      {!hideGoBackIcon && canGoBack && (
-        <MaterialIcons
-          name="navigate-before"
-          color={theme.colors.secondary}
-          size={32}
-          onPress={() => navigation.goBack()}
-        />
-      )}
+      {!hideGoBackIcon ? (
+        canGoBack ? (
+          <MaterialIcons
+            name="navigate-before"
+            color={theme.colors.secondary}
+            size={32}
+            onPress={() => navigation.goBack()}
+          />
+        ) : null
+      ) : null}
       {onTitlePress ? (
         <TitleButton onPress={onTitlePress}>
-          <>
-            <Text variant="heading" color="textWhite" transform="capitalize">
-              {title}
-            </Text>
-            <MaterialIcons name={titleIcon} color={theme.colors.secondary} size={28} />
-          </>
+          <Text
+            style={{
+              fontSize: 14,
+              fontWeight: 'bold',
+              color: theme.colors.textWhite,
+            }}
+          >
+            {title}
+          </Text>
+          {titleIcon ? (
+            <MaterialIcons
+              name={titleIcon}
+              color={theme.colors.secondary}
+              size={28}
+            />
+          ) : null}
         </TitleButton>
       ) : (
-        <Text variant="heading" color="textWhite" transform="capitalize">
+        <Text
+          style={{
+            fontSize: 14,
+            fontWeight: 'bold',
+            color: theme.colors.textWhite,
+          }}
+        >
           {title}
         </Text>
       )}
 
-      {actions && (
+      {actions ? (
         <Actions>
           {actions
             .filter((action) => !action.hidden)
@@ -81,7 +99,7 @@ const Header: React.FC<HeaderProps> = ({
               />
             ))}
         </Actions>
-      )}
+      ) : null}
     </Container>
   );
 };
