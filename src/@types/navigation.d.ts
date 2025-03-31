@@ -12,6 +12,7 @@ export declare global {
       transactions: undefined;
       history: undefined;
       AddTransaction: undefined;
+      CameraScreen: undefined;
     }
   }
 }

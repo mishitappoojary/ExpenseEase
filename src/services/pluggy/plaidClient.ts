@@ -19,8 +19,6 @@ import {
 } from './types';
 
 export class PlaidClient extends BaseApi {
-  // No need to declare accessToken here
-
   async createLinkToken(userId: string) {
     return this.postRequest<{ link_token: string }>(
       '/link/token/create',
@@ -36,13 +34,11 @@ export class PlaidClient extends BaseApi {
   }
 
   async exchangePublicToken(publicToken: string) {
-    const response = await this.postRequest<{ access_token: string; item_id: string }>(
-      '/item/public_token/exchange',
-      { public_token: publicToken },
-      false,
-    );
+    const response = await this.postRequest<{
+      access_token: string;
+      item_id: string;
+    }>('/item/public_token/exchange', { public_token: publicToken }, false);
 
-    // Store the access token for future requests
     this.setAccessToken(response.access_token);
     return response;
   }
@@ -68,21 +64,19 @@ export class PlaidClient extends BaseApi {
     options: Omit<TransactionFilters, 'start_date' | 'end_date'> = {},
   ) {
     this.ensureAccessToken();
-    return this.postRequest<{ transactions: Transaction[] }>('/transactions/get', {
-      start_date: startDate,
-      end_date: endDate,
-      ...options,
-    });
+    return this.postRequest<{ transactions: Transaction[] }>(
+      '/transactions/get',
+      {
+        start_date: startDate,
+        end_date: endDate,
+        ...options,
+      },
+    );
   }
 
   async fetchIdentity() {
     this.ensureAccessToken();
     return this.postRequest<{ identity: Identity }>('/identity/get', {});
-  }
-
-  async fetchIncome() {
-    this.ensureAccessToken();
-    return this.postRequest<{ income: Income }>('/income/get', {});
   }
 
   async fetchLiabilities() {
@@ -98,9 +92,10 @@ export class PlaidClient extends BaseApi {
   }
 
   async fetchAssetReport(assetReportToken: string) {
-    return this.postRequest<{ asset_report: AssetReport }>('/asset_report/get', {
-      asset_report_token: assetReportToken,
-    });
+    return this.postRequest<{ asset_report: AssetReport }>(
+      '/asset_report/get',
+      { asset_report_token: assetReportToken },
+    );
   }
 
   async signalFraudDetection(transactionId: string) {
@@ -112,10 +107,7 @@ export class PlaidClient extends BaseApi {
 
   async fetchRecurringTransactions() {
     this.ensureAccessToken();
-    return this.postRequest<{ recurring_transactions: RecurringTransactions }>(
-      '/transactions/recurring/get',
-      {},
-    );
+    return this.postRequest<{ recurring_transactions: RecurringTransactions }>('/transactions/recurring/get', {});
   }
 
   async fetchStatements() {
@@ -123,7 +115,6 @@ export class PlaidClient extends BaseApi {
     return this.postRequest<{ statements: Statement }>('/statements/get', {});
   }
 
-  // Ensure that accessToken is set before making a request
   private ensureAccessToken() {
     if (!this.accessToken) {
       throw new Error('Access token is not set. Please exchange a public token first.');

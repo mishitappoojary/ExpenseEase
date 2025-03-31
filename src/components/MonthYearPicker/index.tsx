@@ -1,11 +1,18 @@
 import { MaterialIcons } from '@expo/vector-icons';
-import moment, { Moment, monthsShort } from 'moment';
+import moment, { Moment } from 'moment';
 import React, { useState } from 'react';
 import { Modal, View } from 'react-native';
 import { useTheme } from 'styled-components/native';
 import Divider from '../Divider';
 import Text from '../Text';
-import { ActionButton, Card, Content, Header, MonthButton, Overlay } from './styles';
+import {
+  ActionButton,
+  Card,
+  Content,
+  Header,
+  MonthButton,
+  Overlay,
+} from './styles';
 
 type MonthYearPickerProps = {
   isOpen: boolean;
@@ -17,8 +24,8 @@ type MonthYearPickerProps = {
 
 const now = moment();
 
-const currentMonthNumber = parseInt(now.format('M'));
-const currentYearNumber = parseInt(now.format('YYYY'));
+const currentMonthNumber = now.month() + 1;
+const currentYearNumber = now.year();
 
 const MonthYearPicker: React.FC<MonthYearPickerProps> = ({
   isOpen,
@@ -31,11 +38,14 @@ const MonthYearPicker: React.FC<MonthYearPickerProps> = ({
 
   const theme = useTheme();
 
-  const selectedMonth = parseInt(selectedDate.format('M'));
-  const selectedYear = parseInt(selectedDate.format('YYYY'));
+  const selectedMonth = selectedDate
+    ? selectedDate.month() + 1
+    : currentMonthNumber;
+  const selectedYear = selectedDate ? selectedDate.year() : currentYearNumber;
 
-  const minimumDateMonth = parseInt(minimumDate.format('M'));
-  const minimumDateYear = parseInt(minimumDate.format('YYYY'));
+  const minimumDateMonth = minimumDate ? minimumDate.month() + 1 : 1;
+  const minimumDateYear = minimumDate ? minimumDate.year() : currentYearNumber;
+
 
   const prevYear = () => setDisplayedYear(displayedYear - 1);
   const nextYear = () => setDisplayedYear(displayedYear + 1);
@@ -58,10 +68,17 @@ const MonthYearPicker: React.FC<MonthYearPickerProps> = ({
       const currentMonthIndex = i + 1;
 
       const isDisabled =
-        (displayedYear >= currentYearNumber && currentMonthIndex > currentMonthNumber) ||
-        (displayedYear <= minimumDateYear && currentMonthIndex < minimumDateMonth);
+        (displayedYear >= currentYearNumber
+          ? currentMonthIndex > currentMonthNumber
+          : false) ||
+        (displayedYear <= minimumDateYear
+          ? currentMonthIndex < minimumDateMonth
+          : false);
 
-      const isSelected = displayedYear === selectedYear && currentMonthIndex === selectedMonth;
+      const isSelected =
+        displayedYear === selectedYear
+          ? currentMonthIndex === selectedMonth
+          : false;
 
       return (
         <MonthButton
@@ -71,7 +88,7 @@ const MonthYearPicker: React.FC<MonthYearPickerProps> = ({
           active={isSelected}
         >
           <Text variant="title" color="primary" transform="capitalize">
-            {monthsShort(i)}
+            {moment.monthsShort()[i]}
           </Text>
         </MonthButton>
       );
@@ -99,14 +116,28 @@ const MonthYearPicker: React.FC<MonthYearPickerProps> = ({
           }}
         >
           <Header>
-            <ActionButton onPress={prevYear} disabled={displayedYear <= minimumDateYear}>
-              <MaterialIcons name="navigate-before" size={32} color={theme.colors.secondary} />
+            <ActionButton
+              onPress={prevYear}
+              disabled={displayedYear <= minimumDateYear}
+            >
+              <MaterialIcons
+                name="navigate-before"
+                size={32}
+                color={theme.colors.secondary}
+              />
             </ActionButton>
             <Text variant="heading" color="primary">
               {displayedYear}
             </Text>
-            <ActionButton onPress={nextYear} disabled={displayedYear >= currentYearNumber}>
-              <MaterialIcons name="navigate-next" size={32} color={theme.colors.secondary} />
+            <ActionButton
+              onPress={nextYear}
+              disabled={displayedYear >= currentYearNumber}
+            >
+              <MaterialIcons
+                name="navigate-next"
+                size={32}
+                color={theme.colors.secondary}
+              />
             </ActionButton>
           </Header>
           <View>

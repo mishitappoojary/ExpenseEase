@@ -41,7 +41,11 @@ export class BaseApi {
       const requestBody = {
         client_id: this.clientId,
         secret: this.clientSecret,
-        ...(includeAccessToken && this.accessToken ? { access_token: this.accessToken } : {}),
+        ...(includeAccessToken
+          ? this.accessToken
+            ? { access_token: this.accessToken }
+            : {}
+          : {}),
         ...body,
       };
 

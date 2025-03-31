@@ -1,10 +1,14 @@
-export const CONNECTOR_TYPES = ['PERSONAL_BANK', 'BUSINESS_BANK', 'INVESTMENT'] as const;
+export const CONNECTOR_TYPES = [
+  'PERSONAL_BANK',
+  'BUSINESS_BANK',
+  'INVESTMENT',
+] as const;
 
 /**
  * @typedef ConnectorType
  * Type of connectors available
  */
-export type ConnectorType = typeof CONNECTOR_TYPES[number];
+export type ConnectorType = (typeof CONNECTOR_TYPES)[number];
 
 export const PRODUCT_TYPES = [
   'ACCOUNTS',
@@ -19,7 +23,7 @@ export const PRODUCT_TYPES = [
   'INCOME',
 ] as const;
 
-export type ProductType = typeof PRODUCT_TYPES[number];
+export type ProductType = (typeof PRODUCT_TYPES)[number];
 
 export type Connector = {
   /** Primary identifier of the connector */

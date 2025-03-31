@@ -1,72 +1,164 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Button, Text, View, Image, TouchableOpacity } from 'react-native';
-import { Camera, CameraType } from 'expo-camera';
-import { extractTextFromImage } from '../../utils/ocr';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, Button, Image, FlatList } from 'react-native';
+import { Camera } from 'expo-camera';
+import Tesseract from 'tesseract.js';
 
-const CameraScreen = () => {
+const CameraScreen: React.FC = () => {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [cameraRef, setCameraRef] = useState<Camera | null>(null);
   const [imageUri, setImageUri] = useState<string | null>(null);
-  const [extractedText, setExtractedText] = useState<string>('');
-  const cameraRef = useRef<Camera>(null);
+  const [ocrText, setOcrText] = useState<string>('');
+  const [transactions, setTransactions] = useState<number[]>([]); // Store extracted amounts
 
   useEffect(() => {
-    (async () => {
+    const requestCameraPermission = async () => {
       const { status } = await Camera.requestCameraPermissionsAsync();
       setHasPermission(status === 'granted');
-    })();
+    };
+    requestCameraPermission();
   }, []);
 
   const takePicture = async () => {
-    if (cameraRef.current) {
-      const photo = await cameraRef.current.takePictureAsync();
+    if (cameraRef) {
+      const photo = await cameraRef.takePictureAsync();
       setImageUri(photo.uri);
-      await processImage(photo.uri);
+      recognizeText(photo.uri);
     }
   };
 
-  const processImage = async (uri: string) => {
-    try {
-      console.log('Captured Image URI:', uri);
-      const text = await extractTextFromImage(uri);
-      console.log('Extracted Text:', text);
-      setExtractedText(text);
-    } catch (error) {
-      console.error('OCR Error:', error);
-      setExtractedText('Failed to extract text');
+  const addTransaction = (amount: number) => {
+    setTransactions((prevTransactions) => [...prevTransactions, amount]);
+  };
+
+  const recognizeText = async (uri: string) => {
+    if (uri) {
+      try {
+        const {
+          data: { text },
+        } = await Tesseract.recognize(uri, 'eng', {
+          logger: (info) => console.log(info), // Log progress
+        });
+
+        console.log('Extracted Text:', text);
+
+        // Regex to extract the last occurring amount (handles ₹, $, €, and decimal numbers)
+        const amountMatch = text.match(/(?:₹|\$|€)?\s?(\d{1,}[,.]?\d{0,2})/g);
+
+        if (amountMatch) {
+          const billAmount = parseFloat(
+            amountMatch[amountMatch.length - 1].replace(',', ''),
+          ); // Convert to number
+          setOcrText(`Extracted Amount: ₹${billAmount.toFixed(2)}`);
+          addTransaction(billAmount);
+        } else {
+          setOcrText('No amount found.');
+        }
+      } catch (error) {
+        console.error('OCR error:', error);
+        setOcrText('Error recognizing text');
+      }
     }
   };
 
-  if (hasPermission === null) return <Text>Requesting permission...</Text>;
-  if (hasPermission === false) return <Text>No access to camera</Text>;
+  if (hasPermission === null) {
+    return (
+      <View style={styles.centered}>
+        <Text>Requesting camera permission...</Text>
+      </View>
+    );
+  }
+
+  if (hasPermission === false) {
+    return (
+      <View style={styles.centered}>
+        <Text>No access to camera</Text>
+      </View>
+    );
+  }
 
   return (
-    <View style={{ flex: 1 }}>
-      {!imageUri ? (
-        <>
-          <Camera ref={cameraRef} style={{ flex: 1 }} type={CameraType.back} />
-          <TouchableOpacity
-            onPress={takePicture}
-            style={{
-              position: 'absolute',
-              bottom: 20,
-              alignSelf: 'center',
-              backgroundColor: '#fff',
-              padding: 10,
-              borderRadius: 50,
-            }}
-          >
-            <Text style={{ fontSize: 16 }}>📸 Capture</Text>
-          </TouchableOpacity>
-        </>
-      ) : (
-        <>
-          <Image source={{ uri: imageUri }} style={{ width: 300, height: 300, alignSelf: 'center' }} />
-          <Text style={{ marginTop: 20, textAlign: 'center' }}>{extractedText || 'No text extracted'}</Text>
-          <Button title="Take another" onPress={() => setImageUri(null)} />
-        </>
-      )}
+    <View style={styles.container}>
+      <Camera style={styles.camera} ref={setCameraRef}>
+        <View style={styles.buttonContainer}>
+          <Button title="Take Picture" onPress={takePicture} color="#1E90FF" />
+        </View>
+      </Camera>
+
+      {imageUri ? (
+        <Image source={{ uri: imageUri }} style={styles.capturedImage} />
+      ) : null}
+
+
+      <Text style={styles.ocrText}>
+        {ocrText ? String(ocrText) : 'No text recognized yet.'}
+      </Text>
+
+      <View style={styles.transactionList}>
+        <Text style={styles.transactionHeader}>Extracted Transactions:</Text>
+        <FlatList
+          data={transactions}
+          keyExtractor={(item, index) => index.toString()}
+          renderItem={({ item }) => (
+            <Text style={styles.transactionItem}>₹{item.toFixed(2)}</Text>
+          )}
+        />
+      </View>
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  buttonContainer: {
+    alignItems: 'center',
+    bottom: 30,
+    left: 20,
+    position: 'absolute',
+    right: 20,
+  },
+  camera: {
+    flex: 1,
+  },
+  capturedImage: {
+    height: 200,
+    marginTop: 10,
+    resizeMode: 'contain',
+    width: '100%',
+  },
+  centered: {
+    alignItems: 'center',
+    flex: 1,
+    justifyContent: 'center',
+  },
+  container: {
+    backgroundColor: '#f8f8f8',
+    flex: 1,
+  },
+  ocrText: {
+    color: '#333',
+    fontSize: 14,
+    fontWeight: 'bold',
+    padding: 10,
+    textAlign: 'center',
+  },
+  transactionHeader: {
+    color: '#444',
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: 5,
+  },
+  transactionItem: {
+    color: '#222',
+    fontSize: 12,
+    paddingVertical: 5,
+  },
+  transactionList: {
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
+    elevation: 3,
+    marginHorizontal: 20,
+    marginTop: 20,
+    padding: 10,
+  },
+});
 
 export default CameraScreen;

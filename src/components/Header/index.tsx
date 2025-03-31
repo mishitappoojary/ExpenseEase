@@ -27,7 +27,7 @@ export interface HeaderProps extends ViewProps {
   onTitlePress?: () => void;
   actions?: Action[];
   hideGoBackIcon?: boolean;
-  userName?: string; // <-- NEW
+  userName?: string;
 }
 
 const Header: React.FC<HeaderProps> = ({
@@ -41,7 +41,7 @@ const Header: React.FC<HeaderProps> = ({
   ...viewProps
 }) => {
   const [canGoBack, setCanGoBack] = useState(false);
-  const [showUserDropdown, setShowUserDropdown] = useState(false); // <-- NEW
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
   const theme = useTheme();
   const navigation = useNavigation();
 
@@ -57,31 +57,16 @@ const Header: React.FC<HeaderProps> = ({
 
   return (
     <Container {...viewProps}>
-      {/* User Icon */}
       {userIcon && (
         <UserIconContainer>
           <MaterialIcons name={userIcon} color={'white'} size={40} onPress={toggleUserDropdown} />
           {showUserDropdown && (
-            <DropdownMenu
-              style={{
-                backgroundColor: theme.colors.backgroundWhite, // Adjust container background based on theme
-                borderRadius: 8,
-                padding: 8,
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.1,
-                shadowRadius: 4,
-                elevation: 5,
-              }}
-            >
-              {userName && (
-                <DropdownItem style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 16 }}>
-                  <Text style={{ fontSize: 18 }}>👋</Text>
-                  <Text style={{ fontWeight: 'bold', fontSize: 16, color: theme.colors.text }}>
-                    Hi, {userName.charAt(0).toUpperCase() + userName.slice(1)} !!
-                  </Text>
-                </DropdownItem>
-              )}
+            <DropdownMenu>
+              <DropdownItem>
+                <Text style={{ fontWeight: 'bold', fontSize: 16, color: theme.colors.text }}>
+                  Hi, {userName || 'User'} !!
+                </Text>
+              </DropdownItem>
               <DropdownItem>
                 <Text style={{ color: theme.colors.text }}>BudBot</Text>
               </DropdownItem>
@@ -99,11 +84,9 @@ const Header: React.FC<HeaderProps> = ({
               </DropdownItem>
             </DropdownMenu>
           )}
-
         </UserIconContainer>
       )}
 
-      {/* Go Back Icon */}
       {!hideGoBackIcon && canGoBack && (
         <MaterialIcons
           name="navigate-before"
@@ -113,7 +96,6 @@ const Header: React.FC<HeaderProps> = ({
         />
       )}
 
-      {/* Title */}
       {onTitlePress ? (
         <TitleButton onPress={onTitlePress}>
           <>
@@ -126,12 +108,17 @@ const Header: React.FC<HeaderProps> = ({
           </>
         </TitleButton>
       ) : (
-        <Text variant="heading" color="textWhite" transform="capitalize">
+        <Text
+          style={{
+            fontSize: 14,
+            fontWeight: 'bold',
+            color: theme.colors.textWhite,
+          }}
+        >
           {title}
         </Text>
       )}
 
-      {/* Actions */}
       {actions && (
         <Actions>
           {actions

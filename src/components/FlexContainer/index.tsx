@@ -25,7 +25,8 @@ const FlexContainer: React.FC<FlexContainerProps> = ({
       ? children
       : Children.map(children, (child, index) => {
           const isValid = React.isValidElement(child);
-          const isLast = !Array.isArray(children) || index === children.length - 1;
+          const isLast =
+            !Array.isArray(children) || index === children.length - 1;
 
           if (!isValid || isLast) {
             return child;

@@ -1,14 +1,17 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, ListRenderItemInfo, RefreshControl } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useAppContext, MonthlyBalance } from '../../contexts/AppContext';
+import {
+  ActivityIndicator,
+  ListRenderItemInfo,
+  RefreshControl,
+} from 'react-native';
 import { useTheme } from 'styled-components/native';
 import FlexContainer from '../../components/FlexContainer';
 import Money from '../../components/Money';
 import ScreenContainer from '../../components/ScreenContainer';
 import Text from '../../components/Text';
-import AppContext, { MonthlyBalance } from '../../contexts/AppContext';
-import { useTransaction } from '../../contexts/TransactionContext';
 import { checkCurrentYear } from '../../utils/date';
 import {
   Button,
@@ -37,7 +40,7 @@ const History: React.FC = () => {
     setCurrentMonthlyBalancesPage,
     minimumDateWithData,
     setDate,
-  } = useContext(AppContext);
+  } = useAppContext();
 
   const theme = useTheme();
   const navigation = useNavigation();
@@ -90,16 +93,25 @@ const History: React.FC = () => {
     ({ item }: ListRenderItemInfo<MonthlyBalance>) => {
       const { date, incomes, expenses } = item;
 
-      const dateText = checkCurrentYear(date) ? date.format('MMMM') : date.format('MMMM YYYY');
+      const dateText = checkCurrentYear(date)
+        ? date.format('MMMM')
+        : date.format('MMMM YYYY');
 
       const balance = incomes - expenses;
 
-      const showTrendingIcon = !hideValues && balance !== 0;
+      const showTrendingIcon = !hideValues
+        ? balance !== 0
+          ? true
+          : false
+        : false;
 
-      const incomesBarGrow = maxAmount === 0 ? 1 : Math.max(incomes / maxAmount, 0.005);
-      const expensesBarGrow = maxAmount === 0 ? 1 : Math.max(expenses / maxAmount, 0.005);
+      const incomesBarGrow =
+        maxAmount === 0 ? 1 : Math.max(incomes / maxAmount, 0.005);
+      const expensesBarGrow =
+        maxAmount === 0 ? 1 : Math.max(expenses / maxAmount, 0.005);
 
-      const expensesSurplusBarGrow = balance < 0 ? (expenses - incomes) / expenses : 0;
+      const expensesSurplusBarGrow =
+        balance < 0 ? (expenses - incomes) / expenses : 0;
 
       return (
         <FlexContainer gap={12}>
@@ -108,15 +120,20 @@ const History: React.FC = () => {
               <Text variant="heading-regular" transform="capitalize">
                 {dateText}
               </Text>
-              {showTrendingIcon &&
-                (balance > 0 ? (
-                  <MaterialIcons name="trending-up" color={theme.colors.income} size={24} />
-                ) : (
-                  <MaterialIcons name="trending-down" color={theme.colors.error} size={24} />
-                ))}
+              {showTrendingIcon ? (
+                <MaterialIcons
+                  name={balance > 0 ? 'trending-up' : 'trending-down'}
+                  color={balance > 0 ? theme.colors.income : theme.colors.error}
+                  size={24}
+                />
+              ) : null}
             </MonthTrendContainer>
             <TouchableIconContainer onPress={() => handleItemPress(item)}>
-              <MaterialIcons name="navigate-next" color={theme.colors.primary} size={28} />
+              <MaterialIcons
+                name="navigate-next"
+                color={theme.colors.primary}
+                size={28}
+              />
             </TouchableIconContainer>
           </ItemHeader>
           <Text>
@@ -124,7 +141,11 @@ const History: React.FC = () => {
           </Text>
           <HorizontalBarContainer>
             <StyledHorizontalBar color="income" grow={incomesBarGrow} />
-            <Money value={incomes} variant="default-bold" color={hideValues ? 'text' : 'income'} />
+            <Money
+              value={incomes}
+              variant="default-bold"
+              color={hideValues ? 'text' : 'income'}
+            />
           </HorizontalBarContainer>
           <HorizontalBarContainer>
             <StyledHorizontalBar
@@ -148,16 +169,18 @@ const History: React.FC = () => {
 
   const renderFooter = useCallback(
     () =>
-      monthlyBalances.length > 0 && canLoadMore ? (
-        <Button onPress={handleLoadMore}>
-          {isLoading ? (
-            <ActivityIndicator size={24} color={theme.colors.textWhite} />
-          ) : (
-            <Text variant="title" color="textWhite">
-              See more
-            </Text>
-          )}
-        </Button>
+      monthlyBalances.length > 0 ? (
+        canLoadMore ? (
+          <Button onPress={handleLoadMore}>
+            {isLoading ? (
+              <ActivityIndicator size={24} color={theme.colors.textWhite} />
+            ) : (
+              <Text variant="title" color="textWhite">
+                See more
+              </Text>
+            )}
+          </Button>
+        ) : null
       ) : null,
     [canLoadMore, handleLoadMore, isLoading, monthlyBalances, theme],
   );
@@ -180,7 +203,7 @@ const History: React.FC = () => {
       <StyledFlatList
         refreshControl={
           <RefreshControl
-            refreshing={isLoading && !isLoadingMore}
+            refreshing={isLoading ? (!isLoadingMore ? true : false) : false}
             onRefresh={handleRefresh}
             colors={[theme.colors.primary]}
           />

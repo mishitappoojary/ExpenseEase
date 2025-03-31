@@ -2,8 +2,8 @@
 import * as LocalAuthentication from 'expo-local-authentication';
 import React, { useCallback, useEffect, useState } from 'react';
 import Text from '../Text';
-import { AuthButton, Container, SpashImage } from './styles';
-import { useAuth } from '../../contexts/AuthContext';
+import { AuthButton, Container, SplashImage } from './styles';
+import { View } from 'react-native';
 
 export type AuthenticateProps = {
   children: React.ReactNode;
@@ -12,43 +12,46 @@ export type AuthenticateProps = {
 const AuthenticationProvider: React.FC<AuthenticateProps> = ({ children }) => {
   const { user, loading } = useAuth();
   const [isAuthenticated, setAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const authenticationRoutine = useCallback(async () => {
+    console.log('📝 Starting authentication routine...');
+    const isAuthenticated = __DEV__ || (await authenticate());
+    setAuthenticated(isAuthenticated);
+    setLoading(false);
+    console.log('📝 Authentication complete. Is authenticated:', isAuthenticated);
+  }, []);
 
   const authenticate = async () => {
-    const authTypes = await LocalAuthentication.supportedAuthenticationTypesAsync();
-    if (!authTypes) return true;
-
+    console.log('🔐 Initiating biometric authentication...');
     try {
       const result = await LocalAuthentication.authenticateAsync({
-        promptMessage: 'Unlock your app',
+        promptMessage: 'Unlock your phone',
       });
+  
+      console.log('🔐 Authentication Result:', result);
       return result.success;
     } catch (error) {
+      console.error('❌ Biometric Auth Error:', error);
       return false;
     }
   };
 
-  const authenticationRoutine = useCallback(async () => {
-    if (user) {
-      const isAuthenticated = __DEV__ || (await authenticate());
-      setAuthenticated(isAuthenticated);
-    }
-  }, [user]);
 
   useEffect(() => {
-    if (!loading) {
-      authenticationRoutine();
-    }
-  }, [authenticationRoutine, loading]);
+    authenticationRoutine();
+  }, [authenticationRoutine]);
 
-  if (loading) return null;
-
-  return user && isAuthenticated ? (
-    <>{children}</>
+  console.log('✅ Authentication passed, rendering children...');
+  return isAuthenticated ? (
+    <View>{children}</View> // Wrapped in View
   ) : (
     <Container>
-      <SpashImage source={require('../../assets/splash.png')} />
+      <SplashImage source={require('../../assets/splash.png')} />
       <AuthButton onPress={authenticationRoutine}>
-        <Text variant="title">Use phone password</Text>
+        <Text style={{ fontSize: 20, fontWeight: 'bold' }}>
+          Use phone password
+        </Text>
       </AuthButton>
     </Container>
   );

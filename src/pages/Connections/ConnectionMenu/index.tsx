@@ -14,10 +14,10 @@ export interface ConnectionCardProps {
   onPress: (option: Option) => void;
 }
 
-const ConnectionMenu: React.ForwardRefRenderFunction<BottomSheetModal, ConnectionCardProps> = (
-  { onPress },
-  ref,
-) => {
+const ConnectionMenu: React.ForwardRefRenderFunction<
+  BottomSheetModal,
+  ConnectionCardProps
+> = ({ onPress }, ref) => {
   const snapPoints = useMemo(() => [200], []);
 
   const renderBackdrop = useCallback(
@@ -34,7 +34,11 @@ const ConnectionMenu: React.ForwardRefRenderFunction<BottomSheetModal, Connectio
   );
 
   return (
-    <BottomSheetModal ref={ref} snapPoints={snapPoints} backdropComponent={renderBackdrop}>
+    <BottomSheetModal
+      ref={ref}
+      snapPoints={snapPoints}
+      backdropComponent={renderBackdrop}
+    >
       <Container>
         <MenuItem onPress={() => onPress('update')}>
           <>

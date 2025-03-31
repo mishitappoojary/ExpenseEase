@@ -1,5 +1,5 @@
 import React, { useContext } from 'react';
-import AppContext from '../../contexts/AppContext';
+import { useAppContext } from '../../contexts/AppContext';
 import Text, { TextProps } from '../Text';
 
 export type Signal = '+' | '-';
@@ -9,7 +9,7 @@ export interface MoneyProps extends TextProps {
 }
 
 const Money: React.FC<MoneyProps> = ({ value, ...textProps }) => {
-  const { hideValues } = useContext(AppContext);
+  const { hideValues } = useAppContext();
 
   const formatedValue = Math.abs(value)
     .toFixed(2)

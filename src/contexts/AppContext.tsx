@@ -1,206 +1,269 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import moment, { Moment } from 'moment';
-import React, { createContext, useCallback, useEffect, useMemo, useState } from 'react';
 import Toast from 'react-native-toast-message';
 import LoadingModal from '../components/LoadingModal';
-import { usePlaidService } from '../hooks/useplaidService';
-import {
-  Account,
-  AuthResponse,
-  Category,
-  Common,
-  Connector,
-  Deserialized,
-  Execution,
-  Identity,
-  Index,
-  Investment,
-  Item,
-  Opportunity,
-  Transaction,
-  Validation,
-  Webhook,
-} from '../services/plaid/types';
-import { range } from '../utils/array';
-import {
-  CURRENCY_CODES,
-  CurrencyCode,
-  COUNTRY_CODES,
-  CountryCode,
-  PageResponse,
-  PageFilters,
-} from '../services/pluggy/types';
-import {
-  ItemsAsyncStorageKey,
-  LastUpdateDateFormat,
-  LastUpdateDateStorageKey,
-} from '../utils/contants';
-import { sleep } from '../utils/time';
-
-const NUBANK_IGNORED_TRANSACTIONS = ['Money saved', 'Money rescued'];
-
-export type MonthlyBalance = {
-  date: Moment;
-  incomes: number;
-  expenses: number;
-};
+import { Account, Investment, Transaction } from '../services/pluggy/types';
+import { plaidApi } from '../services/pluggy/apiAdapter';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type AppContextValue = {
   isLoading: boolean;
+  setIsLoading: (value: boolean) => void;
   hideValues: boolean;
   setHideValues: (value: boolean) => void;
   date: Moment;
   setDate: (value: Moment) => void;
-  minimumDateWithData: Moment;
-  lastUpdateDate: string;
-  items: Item[];
-  storeItem: (item: Item) => Promise<void>;
-  deleteItem: (item: Item) => Promise<void>;
-  fetchItems: () => Promise<void>;
-  fetchingItems: boolean;
-  updateItems: () => Promise<boolean>;
-  updatingItems: boolean;
+  isAuthenticated: boolean;
+  setIsAuthenticated: (value: boolean) => void;
   accounts: Account[];
-  fetchAccounts: () => Promise<void>;
-  fetchingAccounts: boolean;
-  investments: Investment[];
-  fetchInvestments: () => Promise<void>;
-  fetchingInvestments: boolean;
   transactions: Transaction[];
-  fetchTransactions: () => Promise<void>;
-  fetchingTransactions: boolean;
-  monthlyBalances: MonthlyBalance[];
-  fetchMonthlyBalancesPage: (itemsPerPage: number, currentPage: number) => Promise<void>;
-  fetchingMonthlyBalances: boolean;
-  currentMonthlyBalancesPage: number;
-  setCurrentMonthlyBalancesPage: (value: number) => void;
+  investments: Investment[];
   totalBalance: number;
-  totalInvoice: number;
   totalInvestment: number;
-  incomeTransactions: Transaction[];
+  totalLiability: number;
   totalIncomes: number;
-  expenseTransactions: Transaction[];
   totalExpenses: number;
+  fetchAccounts: () => Promise<void>;
+  fetchTransactions: () => Promise<void>;
+  fetchIncome: () => Promise<void>;
+  fetchLiabilities: () => Promise<void>;
+  fetchInvestments: () => Promise<void>;
+  fetchTotals: () => Promise<void>;
+  fetchExpenses: () => Promise<void>;
+  deleteItem: (itemId: string) => Promise<void>;
+  updateItems: () => Promise<void>;
+  fetchItems: () => Promise<void>;
+  totalInvoice: number;
+  lastUpdateDate: Moment;
+  login: (token: string) => Promise<void>;
+  logout: () => Promise<void>;
 };
 
 const AppContext = createContext({} as AppContextValue);
 
-const now = moment();
-const currentMonth = moment(now).startOf('month');
-
-export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [hideValues, setHideValues] = useState(false);
-  const [date, setDate] = useState(now);
-  const [lastUpdateDate, setLastUpdateDate] = useState('');
-
-  const [itemsId, setItemsId] = useState<string[]>([]);
-  const [loadingItemsId, setLoadingItemsId] = useState<boolean>(false);
-
-  const [items, setItems] = useState<Item[]>([]);
-  const [fetchingItems, setFetchingItems] = useState(false);
-  const [updatingItems, setUpdatingItems] = useState(false);
-
+  const [date, setDate] = useState(moment());
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [accounts, setAccounts] = useState<Account[]>([]);
-  const [fetchingAccounts, setFetchingAccounts] = useState(false);
-
-  const [investments, setInvestments] = useState<Investment[]>([]);
-  const [fetchingInvestments, setFetchingInvestments] = useState(false);
-
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [fetchingTransactions, setFetchingTransactions] = useState(false);
+  const [investments, setInvestments] = useState<Investment[]>([]);
+  const [totalBalance, setTotalBalance] = useState(0);
+  const [totalInvestment, setTotalInvestment] = useState(0);
+  const [totalLiability, setTotalLiability] = useState(0);
+  const [totalIncomes, setTotalIncomes] = useState(0);
+  const [totalExpenses, setTotalExpenses] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const [monthlyBalances, setMonthlyBalances] = useState<MonthlyBalance[]>([]);
-  const [fetchingMonthlyBalances, setFetchingMonthlyBalances] = useState(false);
-  const [currentMonthlyBalancesPage, setCurrentMonthlyBalancesPage] = useState(0);
+  const login = async (accessToken: string) => {
+    try {
+      await AsyncStorage.setItem('access_token', accessToken);
+      setIsAuthenticated(true);  // ✅ Update authentication state
+      console.log('✅ User logged in successfully');
+    } catch (error) {
+      console.error('Error during login:', error);
+    }
+  };
 
-  const plaidService = usePlaidService();
+  // ✅ Function to log out user
+  const logout = async () => {
+    try {
+      await AsyncStorage.removeItem('authToken');  // Remove token
+      setIsAuthenticated(false);  // Mark user as logged out
+    } catch (err) {
+      console.error('Error removing auth token:', err);
+    }
+  };
 
-  const isLoading =
-    loadingItemsId ||
-    fetchingItems ||
-    fetchingAccounts ||
-    fetchingInvestments ||
-    fetchingTransactions ||
-    fetchingMonthlyBalances;
-
+  // ✅ This runs on app startup to check if user is already authenticated
   useEffect(() => {
-    const loadItemsId = async () => {
-      setLoadingItemsId(true);
-      const serializedIds = await AsyncStorage.getItem(ItemsAsyncStorageKey);
-      const ids: string[] = serializedIds ? JSON.parse(serializedIds) : [];
-      setItemsId(ids);
-      setLoadingItemsId(false);
+    const checkAuth = async () => {
+      try {
+        const token = await AsyncStorage.getItem('access_token');
+        console.log("🔍 Stored Token:", token);  // ✅ Check if a token exists
+        setIsAuthenticated(!!token);
+        console.log("🔍 isAuthenticated:", !!token);  // ✅ Log authentication state
+      } catch (err) {
+        console.error("Error retrieving auth token:", err);
+      }
     };
-    loadItemsId();
+    checkAuth();
   }, []);
 
-  const fetchItems = useCallback(async () => {
-    if (itemsId.length === 0) return;
-    setFetchingItems(true);
-    try {
-      const itemsWithDetails = await Promise.all(
-        itemsId.map(async (id) => {
-          const accounts = await plaidService.fetchAccounts(id);
-          return {
-            id,
-            connector: 'Plaid',
-            status: 'active',
-            statusDetail: 'Fetched successfully',
-            accounts,
-          } as Item;
-        }),
-      );
-      setItems(itemsWithDetails);
-    } catch (error) {
-      Toast.show({ type: 'error', text1: 'Unable to obtain connection information!' });
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchAccounts();
+      fetchTransactions();
+      fetchInvestments();
+      fetchTotals();
+      fetchExpenses();
     }
-    setFetchingItems(false);
-  }, [plaidService, itemsId]);
+  }, [isAuthenticated]);
+
+  const fetchAccounts = async () => {
+    try {
+      const data = await plaidApi.fetchAccounts();
+      setAccounts(data);
+    } catch (error) {
+      Toast.show({ type: 'error', text1: 'Error fetching accounts' });
+    }
+  };
+
+  const fetchTransactions = async () => {
+    try {
+      const data = await plaidApi.fetchTransactions();
+      setTransactions(data);
+    } catch (error) {
+      Toast.show({ type: 'error', text1: 'Error fetching transactions' });
+    }
+  };
+
+  const fetchInvestments = async () => {
+    try {
+      const data = await plaidApi.fetchInvestments();
+      setInvestments(data);
+    } catch (error) {
+      Toast.show({ type: 'error', text1: 'Error fetching investments' });
+    }
+  };
+
+  const fetchTotals = async () => {
+    try {
+      const totalIncome = await plaidApi.fetchIncome();
+      const totalLiabilities = await plaidApi.fetchLiabilities();
+      const totalInvestments = await plaidApi.fetchInvestments();
+      
+      setTotalIncomes(totalIncome);
+      setTotalLiability(totalLiabilities);
+      setTotalInvestment(totalInvestments);
+      setTotalBalance(totalIncome - totalLiabilities);
+    } catch (error) {
+      console.error('Error fetching totals:', error);
+    }
+  };
+
+  const fetchExpenses = async () => {
+    try {
+      const transactions: Transaction[] = await plaidApi.fetchTransactions();
+      const total = transactions.filter(t => t.amount < 0).reduce((sum, t) => sum + Math.abs(t.amount), 0);
+      setTotalExpenses(total);
+    } catch (error) {
+      console.error('Error fetching expenses:', error);
+    }
+  };
+
+  const fetchIncome = async () => {
+    try {
+      const totalIncome = await plaidApi.fetchIncome();
+      setTotalIncomes(totalIncome);
+    } catch (error) {
+      console.error('Error fetching income:', error);
+    }
+  };
+  
+  const fetchLiabilities = async () => {
+    try {
+      const totalLiabilities = await plaidApi.fetchLiabilities();
+      setTotalLiability(totalLiabilities);
+    } catch (error) {
+      console.error('Error fetching liabilities:', error);
+    }
+  };
+  
+
+  const deleteItem = async (itemId: string) => {
+    try {
+      await plaidApi.deleteItem(itemId);
+      await fetchAccounts();
+    } catch (error) {
+      console.error(`Error deleting item ${itemId}:`, error);
+    }
+  };
+
+  const fetchItems = async () => {
+    try {
+      setIsLoading(true);
+      await Promise.all([
+        fetchAccounts(),
+        fetchTransactions(),
+        fetchLiabilities(),
+        fetchIncome(),
+        fetchInvestments(),
+      ]);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // ✅ Function to update/synchronize data (forces fresh fetch)
+  const updateItems = async () => {
+    try {
+      setIsLoading(true);
+      console.log("Synchronizing data...");
+
+      await Promise.all([
+        fetchAccounts(), // Refresh accounts
+        fetchTransactions(), // Refresh transactions
+        fetchLiabilities(), // Refresh liabilities
+        fetchIncome(), // Refresh income
+        fetchInvestments(), // Refresh investments
+      ]);
+
+      console.log("Data synchronization complete.");
+    } catch (error) {
+      console.error("Error updating data:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
-    <AppContext.Provider
-      value={{
-        isLoading,
-        hideValues,
-        setHideValues,
-        date,
-        setDate,
-        minimumDateWithData: now.subtract(1, 'year'),
-        lastUpdateDate,
-        items,
-        storeItem: async (item) => {},
-        deleteItem: async (item) => {},
-        fetchItems,
-        fetchingItems,
-        updateItems: async () => true,
-        updatingItems,
-        accounts,
-        fetchAccounts: async () => {},
-        fetchingAccounts,
-        investments,
-        fetchInvestments: async () => {},
-        fetchingInvestments,
-        transactions,
-        fetchTransactions: async () => {},
-        fetchingTransactions,
-        monthlyBalances,
-        fetchMonthlyBalancesPage: async () => {},
-        fetchingMonthlyBalances,
-        currentMonthlyBalancesPage,
-        setCurrentMonthlyBalancesPage,
-        totalBalance: 0,
-        totalInvoice: 0,
-        totalInvestment: 0,
-        incomeTransactions: [],
-        totalIncomes: 0,
-        expenseTransactions: [],
-        totalExpenses: 0,
-      }}
-    >
+    <AppContext.Provider value={{
+      login,
+      logout,
+      isLoading,
+      setIsLoading,
+      hideValues,
+      setHideValues,
+      date,
+      setDate,
+      isAuthenticated,
+      setIsAuthenticated,
+      accounts,
+      transactions,
+      investments,
+      totalBalance,
+      totalInvestment,
+      totalLiability,
+      totalIncomes,
+      totalExpenses,
+      fetchAccounts,
+      fetchTransactions,
+      fetchIncome,
+      fetchLiabilities,
+      fetchInvestments,
+      fetchTotals,
+      fetchExpenses,
+      deleteItem,
+      fetchItems,
+      updateItems,
+      totalInvoice: totalIncomes - totalExpenses,
+      lastUpdateDate: moment(),
+    }}>
       {children}
-      {updatingItems && <LoadingModal text="Synchronizing connections" />}
+      {isLoading && <LoadingModal text="Loading financial data..." />}
     </AppContext.Provider>
   );
+};
+
+export const useAppContext = () => {
+  const context = useContext(AppContext);
+  if (!context) {
+    throw new Error('useAppContext must be used within an AppContextProvider');
+  }
+  return context;
 };
 
 export default AppContext;

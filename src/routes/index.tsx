@@ -4,9 +4,7 @@ import StackRoutes from './stack.routes';
 
 const Routes: React.FC = () => {
   return (
-    <NavigationContainer>
       <StackRoutes />
-    </NavigationContainer>
   );
 };
 

@@ -42,30 +42,34 @@ const TransactionList: React.FC<TransactionListProps> = ({
     );
   }, [transactions, reducedValue]);
 
-  const renderListItemSeparator = useCallback((transaction: Transaction, index: number) => {
-    const date = moment(transaction.date).startOf('day');
+  const renderListItemSeparator = useCallback(
+    (transaction: Transaction, index: number) => {
+      const date = moment(transaction.date).startOf('day');
 
-    const component =
-      index === 0 || date.isBefore(ItemDividerPreviousDateRef.current, 'day') ? (
-        <ListSeparatorContainer>
-          <ListSeparatorDate>
-            <Text variant="title" color="textLight">
-              {date.format('DD')}
-            </Text>
-            <Text variant="light" color="textLight">
-              {date.format('MMM')}
-            </Text>
-          </ListSeparatorDate>
-          <Divider />
-        </ListSeparatorContainer>
-      ) : (
-        <></>
-      );
+      const component =
+        index === 0 ||
+        date.isBefore(ItemDividerPreviousDateRef.current, 'day') ? (
+          <ListSeparatorContainer>
+            <ListSeparatorDate>
+              <Text variant="title" color="textLight">
+                {date.format('DD')}
+              </Text>
+              <Text variant="light" color="textLight">
+                {date.format('MMM')}
+              </Text>
+            </ListSeparatorDate>
+            <Divider />
+          </ListSeparatorContainer>
+        ) : (
+          <></>
+        );
 
-    ItemDividerPreviousDateRef.current = date;
+      ItemDividerPreviousDateRef.current = date;
 
-    return component;
-  }, []);
+      return component;
+    },
+    [],
+  );
 
   const renderItem = useCallback(
     ({ item, index }: ListRenderItemInfo<Transaction>) => {

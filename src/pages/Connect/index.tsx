@@ -1,63 +1,96 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator } from 'react-native';
-import { WebView } from 'react-native-webview'; // Use WebView for Plaid Link
-import { useTransaction } from '../../contexts/TransactionContext';
+import { ActivityIndicator, View, Button, Alert } from 'react-native';
+import { PlaidLink, LinkSuccess, LinkExit } from 'react-native-plaid-link-sdk';
 import { StackRouteParamList } from '../../routes/stack.routes';
 import { Container } from './styles';
 
-const Connect: React.FC<NativeStackScreenProps<StackRouteParamList, 'connect'>> = ({
-  route,
-  navigation,
-}) => {
-  const updateItemId = route.params?.updateItemId;
+const API_URL = 'http://127.0.0.1:8000/api/plaid'; // Adjust as needed
 
+const Connect: React.FC<
+  NativeStackScreenProps<StackRouteParamList, 'connect'>
+> = ({ navigation }) => {
   const [isLoading, setIsLoading] = useState(true);
+  const [linkToken, setLinkToken] = useState<string | null>(null);
 
-  const { linkToken, initializeLinkToken, handlePublicTokenExchange } = useTransaction();
+  // ✅ Fetch the link token from Django backend
+  useEffect(() => {
+    const fetchLinkToken = async () => {
+      try {
+        const response = await fetch(`${API_URL}/create_link_token/`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
 
-  const handleOnClose = () => {
-    navigation.goBack();
-  };
+        if (!response.ok) {
+          throw new Error('Failed to get link token');
+        }
 
-  const handleOnSuccess = async (publicToken: string) => {
+        const data = await response.json();
+        setLinkToken(data.link_token);
+      } catch (error) {
+        console.error('Error initializing link token:', error);
+        Alert.alert('Error', 'Could not initialize Plaid link.');
+        navigation.goBack();
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchLinkToken();
+  }, [navigation]);
+
+  // ✅ Handle public token exchange
+  const handlePublicTokenExchange = async (publicToken: string) => {
     try {
-      // Exchange the public token for an access token and fetch transactions
-      await handlePublicTokenExchange(publicToken);
-      navigation.goBack();
+      const response = await fetch(`${API_URL}/exchange_public_token/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ public_token: publicToken }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to exchange public token');
+      }
+
+      Alert.alert('Success', 'Your bank account is now linked.');
     } catch (error) {
-      console.error('Error during public token exchange:', error);
+      console.error('Error exchanging public token:', error);
+      Alert.alert('Error', 'Could not exchange public token.');
     }
   };
 
-  useEffect(() => {
-    const initLinkToken = async () => {
-      try {
-        await initializeLinkToken(); // Generate the link token
-      } catch (error) {
-        console.error('Error initializing link token:', error);
-        navigation.goBack();
-      }
-      setIsLoading(false);
-    };
+  // ✅ Handlers for Plaid events
+  const onSuccess = async (success: LinkSuccess) => {
+    console.log('Plaid Success:', success);
+    await handlePublicTokenExchange(success.publicToken);
+    navigation.goBack();
+  };
 
-    initLinkToken();
-  }, [initializeLinkToken, navigation]);
+  const onExit = (exit: LinkExit) => {
+    console.log('Plaid Exit:', exit);
+    navigation.goBack();
+  };
 
   return (
     <Container>
       {isLoading ? (
         <ActivityIndicator size="large" color="#6200EE" />
       ) : linkToken ? (
-        <WebView
-          source={{ uri: `https://cdn.plaid.com/link/v2/stable/link.html?token=${linkToken}` }}
-          onMessage={(event) => {
-            const { public_token } = JSON.parse(event.nativeEvent.data);
-            handleOnSuccess(public_token);
-          }}
-          onNavigationStateChange={handleOnClose}
-        />
-      ) : null}
+        <PlaidLink
+          token={linkToken}
+          onSuccess={onSuccess}
+          onExit={onExit}
+        >
+          <Button title="Connect with Plaid" />
+        </PlaidLink>
+      ) : (
+        <View />
+      )}
     </Container>
   );
 };

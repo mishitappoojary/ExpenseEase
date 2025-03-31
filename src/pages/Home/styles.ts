@@ -35,7 +35,10 @@ export const ConnectionsButton = styled(TextButton)`
   padding: 8px 0;
 `;
 
-export const HorizontalBarContainer = styled(FlexContainer).attrs({ direction: 'row', gap: 16 })`
+export const HorizontalBarContainer = styled(FlexContainer).attrs({
+  direction: 'row',
+  gap: 16,
+})`
   align-items: center;
 `;
 
@@ -50,7 +53,10 @@ export const SectionHeader = styled.View`
   align-items: center;
 `;
 
-export const BalanceWithTreding = styled(FlexContainer).attrs({ direction: 'row', gap: 4 })`
+export const BalanceWithTreding = styled(FlexContainer).attrs({
+  direction: 'row',
+  gap: 4,
+})`
   align-items: center;
 `;
 
@@ -65,7 +71,9 @@ export const SeeMoreButton = styled(TextButton).attrs({
   align-items: center;
 `;
 
-export const TransactionListContainer = styled(FlexContainer).attrs({ gap: 24 })`
+export const TransactionListContainer = styled(FlexContainer).attrs({
+  gap: 24,
+})`
   flex: 1;
 `;
 

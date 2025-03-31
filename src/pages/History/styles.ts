@@ -12,7 +12,9 @@ export const StyledHeader = styled(Header)`
 `;
 
 export const StyledFlatList = styled(
-  FlatList as new (props: FlatListProps<MonthBalance>) => FlatList<MonthBalance>,
+  FlatList as new (
+    props: FlatListProps<MonthBalance>,
+  ) => FlatList<MonthBalance>,
 ).attrs({
   contentContainerStyle: {
     padding: 24,
@@ -28,7 +30,10 @@ export const ItemHeader = styled.View`
   justify-content: space-between;
 `;
 
-export const MonthTrendContainer = styled(FlexContainer).attrs({ direction: 'row', gap: 8 })`
+export const MonthTrendContainer = styled(FlexContainer).attrs({
+  direction: 'row',
+  gap: 8,
+})`
   align-items: center;
 `;
 

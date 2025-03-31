@@ -11,6 +11,7 @@ export type Transaction = {
   merchant_name?: string;
   pending: boolean;
   category?: string[];
+  type: 'depository' | 'investment' | 'credit' | 'loan' | 'other';
   payment_meta?: {
     by_order_of?: string;
     payee?: string;

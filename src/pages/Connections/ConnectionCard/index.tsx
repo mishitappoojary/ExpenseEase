@@ -11,8 +11,13 @@ import Divider from '../../../components/Divider';
 import FlexContainer from '../../../components/FlexContainer';
 import Money from '../../../components/Money';
 import Text from '../../../components/Text';
-import AppContext from '../../../contexts/AppContext';
-import { Account, AccountSubType, Item, ItemStatus } from '../../../services/pluggy';
+import { useAppContext } from '../../../contexts/AppContext';
+import {
+  Account,
+  PlaidAccountSubType,
+  Item,
+  ItemStatus,
+} from '../../../services/pluggy';
 import { LastUpdateDateFormat } from '../../../utils/contants';
 import ConnectionMenu, { Option } from '../ConnectionMenu';
 
@@ -27,10 +32,16 @@ import {
   ListItemAvatar,
 } from './styles';
 
-const accountName: Record<AccountSubType, string> = {
-  CHECKING_ACCOUNT: 'Current account',
-  SAVINGS_ACCOUNT: 'Savings account',
-  CREDIT_CARD: 'Credit card',
+const accountName: Record<PlaidAccountSubType, string> = {
+  checking: 'Current account',
+  savings: 'Savings account',
+  'credit card': 'Credit card',
+  mortgage: 'Mortgage',
+  auto: 'Auto loan',
+  student: 'Student loan',
+  brokerage: 'Brokerage account',
+  'cash management': 'Cash management account',
+  other: 'Other account',
 };
 
 const itemStatusMessage: Record<ItemStatus, string> = {
@@ -46,21 +57,25 @@ export interface ConnectionCardProps extends ViewProps {
   accounts: Account[];
 }
 
-const ConnectionCard: React.FC<ConnectionCardProps> = ({ item, accounts, ...viewProps }) => {
+const ConnectionCard: React.FC<ConnectionCardProps> = ({
+  item,
+  accounts,
+  ...viewProps
+}) => {
   const bottomSheetModalRef = useRef<BottomSheetModal>(null);
 
-  const { deleteItem } = useContext(AppContext);
+  const { deleteItem } = useAppContext();
 
   const theme = useTheme();
   const navigation = useNavigation();
 
   const itemAccounts = accounts.filter((account) => account.itemId === item.id);
 
-  const lastUpdateDate = item.lastUpdatedAt
-    ? moment(item.lastUpdatedAt).format(LastUpdateDateFormat)
-    : 'nunca';
+  const lastUpdateDate = item.status
+    ? moment(item.status).format(LastUpdateDateFormat)
+    : 'never';
 
-  const hasError = item.status !== 'UPDATED' && item.status !== 'UPDATING';
+  const hasError = !(item.status === 'UPDATED' || item.status === 'UPDATING');
 
   const handleCardOptionPress = useCallback(() => {
     bottomSheetModalRef.current?.present();
@@ -77,15 +92,20 @@ const ConnectionCard: React.FC<ConnectionCardProps> = ({ item, accounts, ...view
       [
         { text: 'Cancel', onPress: () => {} },
         {
-          text: 'To switch off',
+          text: 'Delete',
           onPress: async () => {
-            await deleteItem(item);
+            if (item.id) {
+              await deleteItem(item.id); // Pass only the item ID
+            } else {
+              console.error('Item ID is missing');
+            }
           },
         },
       ],
       { cancelable: true },
     );
   };
+  
 
   const handleMenuOptionPress = (option: Option) => {
     bottomSheetModalRef.current?.dismiss();
@@ -102,23 +122,33 @@ const ConnectionCard: React.FC<ConnectionCardProps> = ({ item, accounts, ...view
   return (
     <>
       <Card {...viewProps}>
-        {hasError && (
+        {hasError ? (
           <CardErrorContainer>
-            <MaterialIcons name="error" size={24} color={theme.colors.textWhite} />
+            <MaterialIcons
+              name="error"
+              size={24}
+              color={theme.colors.textWhite}
+            />
             <CardErrorMessage>
               <Text variant="light" color="textWhite">
                 Unable to sync data!
               </Text>
               <Text variant="light" color="textWhite">
-                {itemStatusMessage[item.status]}
+                {itemStatusMessage[item.status] || 'unknown error' }
               </Text>
             </CardErrorMessage>
           </CardErrorContainer>
-        )}
+        ) : null}
         <CardContent>
           <CardHeader>
-            <ListItemAvatar color={'#' + item.connector.primaryColor}>
-              <SvgWithCssUri height="100%" width="100%" uri={item.connector.imageUrl} />
+            <ListItemAvatar
+              color={'#' + item.connector.primaryColor || '000000'}
+            >
+              <SvgWithCssUri
+                height="100%"
+                width="100%"
+                uri={item.connector.imageUrl || ''}
+              />
             </ListItemAvatar>
             <CardHeaderContent>
               <Text>{item.connector.name}</Text>
@@ -139,17 +169,27 @@ const ConnectionCard: React.FC<ConnectionCardProps> = ({ item, accounts, ...view
           <FlexContainer gap={16}>
             {itemAccounts.map((account, index) => (
               <AccountLine key={index}>
-                <Text>{accountName[account.subtype]}</Text>
+                <Text>
+                  {accountName[account.subtype as PlaidAccountSubType] ??
+                    'Unknown account'}
+                </Text>
                 <Money
                   variant="default-bold"
-                  value={account.subtype === 'CREDIT_CARD' ? -1 * account.balance : account.balance}
+                  value={
+                    account.type === 'credit'
+                      ? -1 * account.balances.current
+                      : account.balances.current
+                  }
                 />
               </AccountLine>
             ))}
           </FlexContainer>
         </CardContent>
       </Card>
-      <ConnectionMenu onPress={handleMenuOptionPress} ref={bottomSheetModalRef} />
+      <ConnectionMenu
+        onPress={handleMenuOptionPress}
+        ref={bottomSheetModalRef}
+      />
     </>
   );
 };

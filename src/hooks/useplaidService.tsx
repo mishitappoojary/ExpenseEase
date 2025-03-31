@@ -1,122 +1,246 @@
-import React, { createContext, useContext, ReactNode } from 'react';
-import axios from 'axios';
+import React, { createContext, useContext, ReactNode, useState } from 'react';
+import { plaidApi } from '../services/pluggy/apiAdapter';
+import { Text, View } from 'react-native';
 
-const BASE_URL = 'http://192.168.29.253:3000/api'; // Update this URL if needed
+// Define types
+export interface PlaidAccount {
+  id: string;
+  itemId: string;
+  name: string;
+  official_name?: string; // ✅ Now it's correctly defined
+  type: 'depository' | 'investment' | 'credit' | 'loan' | 'other';
+  subtype: string;
+  balance: {
+    available: number | null;
+    current: number;
+    limit?: number | null;
+    currency: string;
+  };
+}
 
-// Create a hook for the Plaid Service
-export const usePlaidService = () => {
-  // Create Link Token
+interface PlaidTransaction {
+  id: string;
+  account_id: string;
+  amount: number;
+  date: string;
+  name: string;
+  category: string[];
+  pending: boolean;
+}
+
+interface PlaidServiceContextType {
+  createLinkToken: () => Promise<string>;
+  exchangePublicToken: (publicToken: string) => Promise<void>;
+  fetchItemStatus: (
+    itemId: string,
+  ) => Promise<{ status: string; statusDetail: string }>;
+  fetchTransactions: () => Promise<PlaidTransaction[]>;
+  fetchAccounts: (itemId?: string) => Promise<PlaidAccount[]>;
+  fetchInvestments: () => Promise<any[]>;
+  deleteItem: (itemId: string) => Promise<void>;
+  refreshAccountData: (itemId: string) => Promise<void>;
+  getInstitutionDetails: (institutionId: string) => Promise<any>;
+  isLoading: boolean;
+  error: Error | null;
+}
+
+// Create context
+const PlaidServiceContext = createContext<PlaidServiceContextType | undefined>(
+  undefined,
+);
+
+// Provider component
+export const PlaidServiceProvider: React.FC<{ children: ReactNode }> = ({
+  children,
+}) => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
   const createLinkToken = async (): Promise<string> => {
+    setIsLoading(true);
+    setError(null);
     try {
-      const response = await axios.post(`${BASE_URL}/create_link_token`);
-      return response.data.link_token; // Return the link token
-    } catch (error) {
-      console.error('Error creating link token:', error);
-      throw error;
+      return await plaidApi.createLinkToken();
+    } catch (err) {
+      console.error(err);
+      setError(
+        err instanceof Error ? err : new Error('Failed to create link token'),
+      );
+      return '';
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // Exchange Public Token for Access Token
-  const exchangePublicToken = async (publicToken: string): Promise<string> => {
+  const exchangePublicToken = async (publicToken: string): Promise<void> => {
+    setIsLoading(true);
+    setError(null);
     try {
-      const response = await axios.post(`${BASE_URL}/exchange_public_token`, {
-        public_token: publicToken,
-      });
-      return response.data.access_token; // Return the access token
-    } catch (error) {
-      console.error('Error exchanging public token:', error);
-      throw error;
+      await plaidApi.exchangePublicToken(publicToken);
+    } catch (err) {
+      console.error(err);
+      setError(
+        err instanceof Error
+          ? err
+          : new Error('Failed to exchange public token'),
+      );
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // Fetch Transactions
-  const fetchTransactions = async (accessToken: string): Promise<any[]> => {
+  const fetchTransactions = async (): Promise<PlaidTransaction[]> => {
+    setIsLoading(true);
+    setError(null);
     try {
-      const response = await axios.post(`${BASE_URL}/transactions`, {
-        access_token: accessToken,
-      });
-      return response.data.transactions; // Return the transactions array
-    } catch (error) {
-      console.error('Error fetching transactions:', error);
-      throw error;
+      return await plaidApi.fetchTransactions();
+    } catch (err) {
+      console.error(err);
+      setError(
+        err instanceof Error ? err : new Error('Failed to fetch transactions'),
+      );
+      return [];
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // Fetch Accounts
-  const fetchAccounts = async (accessToken: string): Promise<any[]> => {
+  const fetchItemStatus = async (
+    itemId: string,
+  ): Promise<{ status: string; statusDetail: string }> => {
+    setIsLoading(true);
+    setError(null);
     try {
-      const response = await axios.post(`${BASE_URL}/accounts`, {
-        access_token: accessToken,
-      });
-      return response.data.accounts; // Return the accounts array
-    } catch (error) {
-      console.error('Error fetching accounts:', error);
-      throw error;
+      return await plaidApi.getItemStatus(itemId);
+    } catch (err) {
+      console.error('Error fetching item status:', err);
+      setError(
+        err instanceof Error ? err : new Error('Failed to fetch item status'),
+      );
+      return { status: 'error', statusDetail: 'Failed to fetch item status' };
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // Fetch Investments (if applicable)
-  const fetchInvestments = async (accessToken: string): Promise<any[]> => {
+  const fetchAccounts = async (itemId?: string): Promise<PlaidAccount[]> => {
+    setIsLoading(true);
+    setError(null);
     try {
-      const response = await axios.post(`${BASE_URL}/investments`, {
-        access_token: accessToken,
-      });
-      return response.data.investments; // Return the investments array
-    } catch (error) {
-      console.error('Error fetching investments:', error);
-      throw error;
+      const accounts = await plaidApi.fetchAccounts();
+      return itemId
+        ? accounts.filter((account: PlaidAccount) => account.itemId === itemId)
+        : accounts;
+    } catch (err) {
+      console.error(err);
+      setError(
+        err instanceof Error ? err : new Error('Failed to fetch accounts'),
+      );
+      return [];
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // Delete an Item (disconnect from Plaid)
-  const deleteItem = async (accessToken: string): Promise<void> => {
+  const fetchInvestments = async (): Promise<any[]> => {
+    setIsLoading(true);
+    setError(null);
     try {
-      await axios.post(`${BASE_URL}/delete_item`, {
-        access_token: accessToken,
-      });
-    } catch (error) {
-      console.error('Error deleting item:', error);
-      throw error;
+      return await plaidApi.fetchInvestments();
+    } catch (err) {
+      console.error(err);
+      setError(
+        err instanceof Error ? err : new Error('Failed to fetch investments'),
+      );
+      return [];
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  return {
+  const deleteItem = async (itemId: string): Promise<void> => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      await plaidApi.deleteItem(itemId);
+    } catch (err) {
+      console.error(err);
+      setError(err instanceof Error ? err : new Error('Failed to delete item'));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const refreshAccountData = async (itemId: string): Promise<void> => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      await plaidApi.refreshAccountData(itemId);
+    } catch (err) {
+      console.error(err);
+      setError(
+        err instanceof Error
+          ? err
+          : new Error('Failed to refresh account data'),
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const getInstitutionDetails = async (institutionId: string): Promise<any> => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      return await plaidApi.getInstitutionDetails(institutionId);
+    } catch (err) {
+      console.error(err);
+      setError(
+        err instanceof Error
+          ? err
+          : new Error('Failed to get institution details'),
+      );
+      return {};
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const value: PlaidServiceContextType = {
     createLinkToken,
     exchangePublicToken,
+    fetchItemStatus,
     fetchTransactions,
     fetchAccounts,
     fetchInvestments,
     deleteItem,
+    refreshAccountData,
+    getInstitutionDetails,
+    isLoading,
+    error,
   };
-};
-
-// Define the context shape
-interface PlaidServiceContextType {
-  createLinkToken: () => Promise<string>;
-  exchangePublicToken: (publicToken: string) => Promise<string>;
-  fetchTransactions: (accessToken: string) => Promise<any[]>;
-  fetchAccounts: (accessToken: string) => Promise<any[]>;
-  fetchInvestments: (accessToken: string) => Promise<any[]>;
-  deleteItem: (accessToken: string) => Promise<void>;
-}
-
-// Create the Plaid service context
-const PlaidServiceContext = createContext<PlaidServiceContextType | undefined>(undefined);
-
-// Create a provider for the Plaid service context
-export const PlaidServiceContextProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const plaidService = usePlaidService(); // Get service methods from usePlaidService hook
 
   return (
-    <PlaidServiceContext.Provider value={plaidService}>{children}</PlaidServiceContext.Provider>
+    <PlaidServiceContext.Provider value={value}>
+      <View style={{ flex: 1 }}>
+        {error ? <Text style={{ color: 'red' }}>{error.message}</Text> : null}
+        {isLoading ? <Text>Loading Plaid Service...</Text> : null}
+        {children}
+      </View>
+    </PlaidServiceContext.Provider>
   );
 };
 
-// Create a custom hook to use the context
+
+// Custom hook
 export const usePlaidContext = (): PlaidServiceContextType => {
   const context = useContext(PlaidServiceContext);
   if (!context) {
-    throw new Error('usePlaidContext must be used within a PlaidServiceContextProvider');
+    throw new Error(
+      'usePlaidContext must be used within a PlaidServiceProvider',
+    );
   }
   return context;
 };
+
+export default PlaidServiceProvider;

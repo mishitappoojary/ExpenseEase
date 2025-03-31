@@ -14,7 +14,7 @@ export const WEBHOOK_EVENTS = [
  * @typedef WebhookEvent
  * Type of events that can be subscribed
  */
-export type WebhookEvent = typeof WEBHOOK_EVENTS[number];
+export type WebhookEvent = (typeof WEBHOOK_EVENTS)[number];
 
 export type Webhook = {
   /** Primary identifier of the entity */
