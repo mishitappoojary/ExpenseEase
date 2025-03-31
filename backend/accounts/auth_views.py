@@ -11,14 +11,12 @@ import datetime
 from django.conf import settings
 
 # Generate JWT token
-def generate_token(user):
-    payload = {
-        'id': user.id,
-        'email': user.email,
-        'exp': datetime.datetime.utcnow() + datetime.timedelta(days=7),
-        'iat': datetime.datetime.utcnow()
+def generate_tokens(user):
+    refresh = RefreshToken.for_user(user)
+    return {
+        'access': str(refresh.access_token),  # Will expire in 7 days as per settings
+        'refresh': str(refresh),
     }
-    return jwt.encode(payload, settings.SECRET_KEY, algorithm='HS256')
 
 # ✅ User Registration View (SignUp)
 @method_decorator(csrf_exempt, name='dispatch')
@@ -32,7 +30,7 @@ class SignUpView(APIView):
             return Response({'error': 'Email already exists'}, status=status.HTTP_400_BAD_REQUEST)
 
         user = User.objects.create_user(username=email, email=email, password=password)
-        token = generate_token(user)
+        token = generate_tokens(user)
         return Response({'token': token}, status=status.HTTP_201_CREATED)
 
 # ✅ User Login View (SignIn)
@@ -44,6 +42,6 @@ class LoginView(APIView):
 
         user = authenticate(username=email, password=password)
         if user is not None:
-            token = generate_token(user)
+            token = generate_tokens(user)
             return Response({'token': token}, status=status.HTTP_200_OK)
         return Response({'error': 'Invalid credentials'}, status=status.HTTP_400_BAD_REQUEST)
