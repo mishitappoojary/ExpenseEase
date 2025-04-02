@@ -11,8 +11,9 @@ import ConnectionCard from './ConnectionCard';
 import { BottomSheet, StyledHeader } from './styles';
 
 // const API_BASE_URL = 'http://localhost:8000/api/plaid'; //for web
-const API_BASE_URL = 'http://127.0.0.1:8000/api/plaid'; //For expo
+//const API_BASE_URL = 'http://127.0.0.1:8000/api/plaid'; //For expo
 // const API_BASE_URL = 'http://10.0.2.2:8000/api'; // For Emulator
+const API_BASE_URL = 'http://192.168.0.103:8000/api/auth';
 
 interface Item {
   id: string;

@@ -10,7 +10,6 @@ export type AuthenticateProps = {
 };
 
 const AuthenticationProvider: React.FC<AuthenticateProps> = ({ children }) => {
-  const { user, loading } = useAuth();
   const [isAuthenticated, setAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
 

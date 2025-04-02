@@ -21,8 +21,8 @@ import Header from '../../components/Header';
 import HorizontalBar from '../../components/HorizontalBar';
 import Money from '../../components/Money';
 import MonthYearPicker from '../../components/MonthYearPicker';
+import AddTransactionButton from '../../components/AddTransactionButton/AddTransactionButton';
 import ScreenContainer from '../../components/ScreenContainer';
-import Text from '../../components/Text';
 import { useAppContext } from '../../contexts/AppContext';
 import { checkCurrentMonth, formatMonthYearDate, NOW } from '../../utils/date';
 import plaidApi from '../../services/pluggy/apiAdapter';
@@ -54,8 +54,8 @@ const Home: React.FC = () => {
     return value.format('MMMM YYYY');
   };
 
-  const { user, logout } = useAuth();
-  const userName = user?.displayName || 'User';
+  // Use a default name instead of user data
+  const userName = 'User';
   const [monthYearPickerOpened, setMonthYearPickerOpened] = useState(false);
   const [transactionListCapacity, setTransactionListCapacity] = useState(0);
   const [headerTitle, setHeaderTitle] = useState(formatMonthYearDate(NOW)); 
@@ -65,7 +65,7 @@ const Home: React.FC = () => {
   const navigation = useNavigation();
 
   const toggleUserDropdown = () => {
-    setShowUserDropdown((prev) => !prev); // <-- NEW
+    setShowUserDropdown((prev) => !prev);
   };
 
   const {
@@ -88,6 +88,7 @@ const Home: React.FC = () => {
     fetchInvestments,
     fetchIncome,
     fetchLiabilities,
+    logout, // Make sure logout is still destructured from context
   } = useAppContext();
 
   console.log('🔍 fetchLiabilities:', fetchLiabilities);
@@ -145,7 +146,6 @@ const Home: React.FC = () => {
     setMonthYearPickerOpened(false);
   };
   
-
   const handleRefreshPage = async () => {
     Alert.alert(
       'Do you want to synchronize connections?',
@@ -171,7 +171,11 @@ const Home: React.FC = () => {
         {
           text: "Yes",
           onPress: async () => {
-            await logout();
+            if (logout) {
+              await logout();
+            } else {
+              console.error("Logout function not available");
+            }
           },
         },
       ],
@@ -193,7 +197,7 @@ const Home: React.FC = () => {
       >
         <TopContainer>
           <Header
-            userIcon ='account-circle'
+            userIcon="account-circle"
             userName={userName}
             title={headerTitle} 
             titleIcon="expand-more"
@@ -247,9 +251,9 @@ const Home: React.FC = () => {
           </FlexContainer>
         </TopContainer>
       </ScrollView>
+      <AddTransactionButton onPress={() => navigation.navigate('AddTransaction')} />
     </ScreenContainer>
   );
 };
-
 
 export default Home;

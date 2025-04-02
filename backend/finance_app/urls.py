@@ -29,6 +29,8 @@ urlpatterns = [
 
     # Authentication
     path('api/auth/', include('rest_framework.urls')),  # DRF built-in authentication views
+
+     path('api/process-receipt/', views.process_receipt, name='process_receipt'),
 ]
 
 # Serve media files in development mode

@@ -47,22 +47,23 @@ export const CategoriesProvider = ({ children }: { children: React.ReactNode }) 
   const loadCategories = async () => {
     try {
       const savedCategories = await AsyncStorage.getItem('categories');
+      let mergedCategories = initialCategories;
+  
       if (savedCategories) {
         const existingCategories = JSON.parse(savedCategories);
-        const mergedCategories = [...initialCategories, ...existingCategories.filter(
+        mergedCategories = [...initialCategories, ...existingCategories.filter(
           (savedCategory: Category) =>
             !initialCategories.some((defaultCategory) => defaultCategory.name === savedCategory.name)
         )];
-        setCategories(mergedCategories);
-        await saveCategories(mergedCategories);
-      } else {
-        setCategories(initialCategories);
-        await saveCategories(initialCategories);
       }
+  
+      setCategories(mergedCategories);  // ✅ First update state
+      saveCategories(mergedCategories); // ✅ Then save to AsyncStorage
     } catch (error) {
       console.error('Failed to load categories:', error);
     }
   };
+  
 
   const saveCategories = async (updatedCategories: Category[]) => {
     try {

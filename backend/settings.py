@@ -16,6 +16,10 @@ DJANGO_APPS = [
     'backend.common',
 ]
 
+MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',  # Add this line
+]
+
 THIRD_PARTY_APPS = [
     "rest_framework",  # for building API
     'rest_framework.authtoken',
@@ -82,6 +86,12 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
+
+    'DEFAULT_PARSER_CLASSES': [
+        'rest_framework.parsers.JSONParser',
+        'rest_framework.parsers.FormParser',
+        'rest_framework.parsers.MultiPartParser',
+    ]
 }
 
 # Add CORS settings for React Native
@@ -89,6 +99,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://localhost:19006",  # Expo default port
     "http://10.0.2.2:8000",
+    "http://192.168.0.103:8000",
 ]
 
 # allauth settings

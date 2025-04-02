@@ -41,7 +41,7 @@ const StackRoutes: React.FC = () => {
   const checkAuth = async () => {
     try {
       const accessToken = await AsyncStorage.getItem('access_token'); 
-      console.log('🔍 Access Token:', accessToken ? 'Exists' : 'Not Found');
+      console.log('🔍 Stored Token:', accessToken ? 'Exists' : 'Not Found');
       setIsAuthenticated(!!accessToken);
     } catch (error) {
       console.error('❌ Error retrieving access token:', error);
@@ -72,13 +72,16 @@ const StackRoutes: React.FC = () => {
     );
   }
 
+  console.log("🔍 isAuthenticated:", isAuthenticated);
+  console.log("🔍 Initial Route:", isAuthenticated === false ? "signIn" : "home");
+
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       {isAuthenticated === false ? (
         <>
-          {console.log("🟢 Showing SignUpScreen")}
-          <Stack.Screen name="signUp" component={SignUpScreen} />
+          {console.log("🟢 Showing SignInScreen")}
           <Stack.Screen name="signIn" component={SignInScreen} />
+          <Stack.Screen name="signUp" component={SignUpScreen} />
         </>
       ) : (
         <>

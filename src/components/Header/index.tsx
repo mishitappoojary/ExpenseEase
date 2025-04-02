@@ -63,24 +63,24 @@ const Header: React.FC<HeaderProps> = ({
           {showUserDropdown && (
             <DropdownMenu>
               <DropdownItem>
-                <Text style={{ fontWeight: 'bold', fontSize: 16, color: theme.colors.text }}>
-                  Hi, {userName || 'User'} !!
+                <Text style={{ fontWeight: 'bold', fontSize: 16, color: theme.colors.dark }}>
+                  Hi, { userName } !!
                 </Text>
               </DropdownItem>
               <DropdownItem>
-                <Text style={{ color: theme.colors.text }}>BudBot</Text>
+                <Text style={{ color: theme.colors.dark }}>BudBot</Text>
               </DropdownItem>
               <DropdownItem>
-                <Text style={{ color: theme.colors.text }}>Budget</Text>
+                <Text style={{ color: theme.colors.dark }}>Budget</Text>
               </DropdownItem>
               <DropdownItem>
-                <Text style={{ color: theme.colors.text }}>Graphs</Text>
+                <Text style={{ color: theme.colors.dark }}>Graphs</Text>
               </DropdownItem>
               <DropdownItem onPress={() => navigation.navigate('goals')}>
-                <Text style={{ color: theme.colors.text }}>Goals</Text>
+                <Text style={{ color: theme.colors.dark }}>Goals</Text>
               </DropdownItem>
-              <DropdownItem onPress={() => navigation.navigate('addCategories')}>
-                <Text style={{ color: theme.colors.text }}>Add Categories</Text>
+              <DropdownItem onPress={() => navigation.navigate('AddCategories')}>
+                <Text style={{ color: theme.colors.dark }}>Add Categories</Text>
               </DropdownItem>
             </DropdownMenu>
           )}
