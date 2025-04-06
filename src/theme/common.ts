@@ -7,9 +7,9 @@ export default {
     extraSmall: 10,
   },
   font: {
-    light: 'Inter_300Light',
-    regular: 'Inter_400Regular',
-    bold: 'Inter_700Bold',
+    light: 'System',
+    regular: 'System',
+    bold: 'System',
   },
   colors: {
     primary: '#4CAF50',

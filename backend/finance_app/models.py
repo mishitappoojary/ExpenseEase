@@ -1,6 +1,10 @@
 from django.contrib.auth.models import AbstractUser, Group, Permission
 from django.db import models
+from django.contrib.auth import get_user_model
+from django.conf import settings
 from django.utils.translation import gettext_lazy as _
+
+User = get_user_model()
 
 class User(AbstractUser):
     email = models.EmailField(unique=True)
@@ -61,6 +65,15 @@ class LinkedAccount(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.provider}"
+    
+class Transaction(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    description = models.CharField(max_length=255, default="Scanned Bill")
+    date = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.amount}"
 
 # Financial Account Model (NEW)
 class FinancialAccount(models.Model):

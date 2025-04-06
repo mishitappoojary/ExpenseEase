@@ -3,6 +3,7 @@ import moment, { Moment } from 'moment';
 import Toast from 'react-native-toast-message';
 import LoadingModal from '../components/LoadingModal';
 import { Account, Investment, Transaction } from '../services/pluggy/types';
+import { useMemo } from 'react';
 import { plaidApi } from '../services/pluggy/apiAdapter';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -14,9 +15,12 @@ export type AppContextValue = {
   date: Moment;
   setDate: (value: Moment) => void;
   isAuthenticated: boolean;
+  authLoading: boolean;
   setIsAuthenticated: (value: boolean) => void;
   accounts: Account[];
   transactions: Transaction[];
+  manualTransactions: Transaction[];
+  allTransactions: Transaction[];
   investments: Investment[];
   totalBalance: number;
   totalInvestment: number;
@@ -25,6 +29,7 @@ export type AppContextValue = {
   totalExpenses: number;
   fetchAccounts: () => Promise<void>;
   fetchTransactions: () => Promise<void>;
+  fetchManualTransactions: () => Promise<void>;
   fetchIncome: () => Promise<void>;
   fetchLiabilities: () => Promise<void>;
   fetchInvestments: () => Promise<void>;
@@ -44,9 +49,13 @@ const AppContext = createContext({} as AppContextValue);
 export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [hideValues, setHideValues] = useState(false);
   const [date, setDate] = useState(moment());
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [authLoading, setAuthLoading] = useState<boolean>(false);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+
+  const [manualTransactions, setManualTransactions] = useState<Transaction[]>([]);
+
   const [investments, setInvestments] = useState<Investment[]>([]);
   const [totalBalance, setTotalBalance] = useState(0);
   const [totalInvestment, setTotalInvestment] = useState(0);
@@ -62,33 +71,35 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
       console.log('✅ User logged in successfully');
     } catch (error) {
       console.error('Error during login:', error);
+      throw error;
     }
   };
 
   // ✅ Function to log out user
   const logout = async () => {
     try {
-      await AsyncStorage.removeItem('authToken');  // Remove token
+      await AsyncStorage.removeItem('access_token');  // Remove token
       setIsAuthenticated(false);  // Mark user as logged out
     } catch (err) {
       console.error('Error removing auth token:', err);
+      throw err;
     }
   };
 
   // ✅ This runs on app startup to check if user is already authenticated
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const token = await AsyncStorage.getItem('access_token');
-        console.log("🔍 Stored Token:", token);  // ✅ Check if a token exists
-        setIsAuthenticated(!!token);
-        console.log("🔍 isAuthenticated:", !!token);  // ✅ Log authentication state
-      } catch (err) {
-        console.error("Error retrieving auth token:", err);
-      }
-    };
-    checkAuth();
-  }, []);
+  const checkAuth = async () => {
+    try {
+      const accessToken = await AsyncStorage.getItem('access_token');
+      console.log('🔍 AppContext checking token:', accessToken ? 'Exists' : 'Not Found');
+      setIsAuthenticated(!!accessToken);
+    } catch (error) {
+      console.error('❌ Auth check error:', error);
+      setIsAuthenticated(false);
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+  
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -117,6 +128,26 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
       Toast.show({ type: 'error', text1: 'Error fetching transactions' });
     }
   };
+
+  const fetchManualTransactions = async () => {
+    try {
+      const data = await plaidApi.fetchManualTransactions();
+      console.log('Fetched manual transactions:', data);
+      setManualTransactions(data);
+    } catch (error) {
+      console.error('Error fetching manual transactions:', error);
+    }
+  };
+  
+  const allTransactions = useMemo(
+    () =>
+      [...transactions, ...manualTransactions].sort(
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+      ),
+    [transactions, manualTransactions]
+  );
+  
+  
 
   const fetchInvestments = async () => {
     try {
@@ -186,6 +217,7 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
       await Promise.all([
         fetchAccounts(),
         fetchTransactions(),
+        fetchManualTransactions(),
         fetchLiabilities(),
         fetchIncome(),
         fetchInvestments(),
@@ -206,6 +238,8 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
       await Promise.all([
         fetchAccounts(), // Refresh accounts
         fetchTransactions(), // Refresh transactions
+        fetchManualTransactions(), // Refresh manual transactions
+        fetchExpenses(), // Refresh expenses
         fetchLiabilities(), // Refresh liabilities
         fetchIncome(), // Refresh income
         fetchInvestments(), // Refresh investments
@@ -231,8 +265,11 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
       setDate,
       isAuthenticated,
       setIsAuthenticated,
+      authLoading,
       accounts,
       transactions,
+      allTransactions,
+      manualTransactions,
       investments,
       totalBalance,
       totalInvestment,
@@ -241,6 +278,7 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
       totalExpenses,
       fetchAccounts,
       fetchTransactions,
+      fetchManualTransactions,
       fetchIncome,
       fetchLiabilities,
       fetchInvestments,

@@ -17,7 +17,7 @@ import { styles } from './styles';
 import { useAppContext } from '../../contexts/AppContext';
 
 
-const API_BASE_URL = 'http://10.0.2.2:8000//api/auth';
+const API_BASE_URL = 'http://10.0.2.2:8000/api/auth';
 
 const SignInScreen: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -32,7 +32,9 @@ const SignInScreen: React.FC = () => {
 
   const handleSignIn = async () => {
     try {
-      const response = await axios.post(`${API_BASE_URL}/login/`, { email, password });
+      console.log("Sending login request with:", { username: email, password }); // Debugging log
+  
+      const response = await axios.post(`${API_BASE_URL}/login/`, { username: email, password });
       const accessToken = response.data.access;  // JWT access token
   
       await login(accessToken);  // ✅ Call login to update auth state
@@ -48,7 +50,8 @@ const SignInScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       <Image
-        source={require('../../assets/adaptive-icon.png')}
+        // source={require('../../assets/adaptive-icon.png')}
+        source={require('../../assets/adaptive-icon2.jpg')}
         style={styles.logo}
       />
       <Text style={styles.title}>Sign In</Text>

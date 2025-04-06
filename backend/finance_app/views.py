@@ -2,6 +2,8 @@
 from django.shortcuts import render
 from django.http import JsonResponse
 from rest_framework.decorators import api_view
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
 from rest_framework.response import Response
 from rest_framework import status, generics, permissions
 from rest_framework.views import APIView
@@ -14,10 +16,13 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
+from .serializers import TransactionSerializer
+from .models import Transaction
+
 
 from django.contrib.auth.models import update_last_login
 from .models import UserProfile
-from .serializers import UserSerializer, RegisterSerializer
+from .serializers import UserSerializer, RegisterSerializer, TransactionSerializer
 from rest_framework_simplejwt.exceptions import TokenError
 
 def homepage(request):
@@ -113,3 +118,31 @@ class LogoutView(APIView):
             return Response({"message": "Logged out successfully"}, status=status.HTTP_205_RESET_CONTENT)
         except TokenError:
             return Response({"error": "Invalid token"}, status=status.HTTP_400_BAD_REQUEST)
+
+@csrf_exempt  # ✅ Disable CSRF for this view
+@api_view(['POST'])
+def add_transaction(request):
+    serializer = TransactionSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data, status=201)
+    return Response(serializer.errors, status=400)
+
+@method_decorator(csrf_exempt, name='dispatch')
+class TransactionListCreateView(generics.ListCreateAPIView):
+    serializer_class = TransactionSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Transaction.objects.filter(user=self.request.user).order_by('-date')
+
+    def perform_create(self, serializer):
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+
+        print(f"DEBUG: request.user = {self.request.user}")
+        print(f"DEBUG: type = {type(self.request.user)}")
+        print(f"DEBUG: user is authenticated? {self.request.user.is_authenticated}")
+        print(f"DEBUG: is instance of User? {isinstance(self.request.user, User)}")
+
+        serializer.save(user=self.request.user)

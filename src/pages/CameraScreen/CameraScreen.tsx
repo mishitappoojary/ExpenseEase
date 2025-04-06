@@ -1,14 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Button, Image, FlatList } from 'react-native';
+import { View, Text, StyleSheet, Button, Image, FlatList, Alert } from 'react-native';
 import { Camera } from 'expo-camera';
-import Tesseract from 'tesseract.js';
+import * as ImageManipulator from 'expo-image-manipulator';
 
 const CameraScreen: React.FC = () => {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [cameraRef, setCameraRef] = useState<Camera | null>(null);
   const [imageUri, setImageUri] = useState<string | null>(null);
-  const [ocrText, setOcrText] = useState<string>('');
-  const [transactions, setTransactions] = useState<number[]>([]); // Store extracted amounts
+  const [transactions, setTransactions] = useState<{ id: number; amount: number; date: string }[]>([]); // Transaction list
+  const [loading, setLoading] = useState<boolean>(false);
+  const userId = 1; // Change this dynamically based on the logged-in user
 
   useEffect(() => {
     const requestCameraPermission = async () => {
@@ -21,42 +22,50 @@ const CameraScreen: React.FC = () => {
   const takePicture = async () => {
     if (cameraRef) {
       const photo = await cameraRef.takePictureAsync();
-      setImageUri(photo.uri);
-      recognizeText(photo.uri);
+      const compressedPhoto = await ImageManipulator.manipulateAsync(
+        photo.uri,
+        [{ resize: { width: 800 } }], // Resize for better OCR accuracy
+        { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
+      );
+
+      setImageUri(compressedPhoto.uri);
+      uploadReceipt(compressedPhoto.uri);
     }
   };
 
-  const addTransaction = (amount: number) => {
-    setTransactions((prevTransactions) => [...prevTransactions, amount]);
-  };
+  const uploadReceipt = async (uri: string) => {
+    setLoading(true);
+    const formData = new FormData();
+    formData.append('image', {
+      uri,
+      name: 'receipt.jpg',
+      type: 'image/jpeg',
+    } as any);
+    formData.append('user_id', userId.toString());
 
-  const recognizeText = async (uri: string) => {
-    if (uri) {
-      try {
-        const {
-          data: { text },
-        } = await Tesseract.recognize(uri, 'eng', {
-          logger: (info) => console.log(info), // Log progress
-        });
+    try {
+      const response = await fetch('http://127.0.0.1:8000/api/process-receipt/', {
+        method: 'POST',
+        body: formData,
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
 
-        console.log('Extracted Text:', text);
+      const data = await response.json();
+      setLoading(false);
 
-        // Regex to extract the last occurring amount (handles ₹, $, €, and decimal numbers)
-        const amountMatch = text.match(/(?:₹|\$|€)?\s?(\d{1,}[,.]?\d{0,2})/g);
-
-        if (amountMatch) {
-          const billAmount = parseFloat(
-            amountMatch[amountMatch.length - 1].replace(',', ''),
-          ); // Convert to number
-          setOcrText(`Extracted Amount: ₹${billAmount.toFixed(2)}`);
-          addTransaction(billAmount);
-        } else {
-          setOcrText('No amount found.');
-        }
-      } catch (error) {
-        console.error('OCR error:', error);
-        setOcrText('Error recognizing text');
+      if (data.status === 'success') {
+        setTransactions((prevTransactions) => [
+          ...prevTransactions,
+          { id: data.transaction.id, amount: data.transaction.amount, date: data.transaction.date },
+        ]);
+        Alert.alert('Success', `Transaction added: ₹${data.transaction.amount}`);
+      } else {
+        Alert.alert('Error', data.message);
       }
+    } catch (error) {
+      setLoading(false);
+      console.error('Upload Error:', error);
+      Alert.alert('Upload Failed', 'Could not process the receipt.');
     }
   };
 
@@ -84,22 +93,17 @@ const CameraScreen: React.FC = () => {
         </View>
       </Camera>
 
-      {imageUri ? (
-        <Image source={{ uri: imageUri }} style={styles.capturedImage} />
-      ) : null}
+      {imageUri && <Image source={{ uri: imageUri }} style={styles.capturedImage} />}
 
-
-      <Text style={styles.ocrText}>
-        {ocrText ? String(ocrText) : 'No text recognized yet.'}
-      </Text>
+      {loading && <Text style={styles.loadingText}>Processing receipt...</Text>}
 
       <View style={styles.transactionList}>
         <Text style={styles.transactionHeader}>Extracted Transactions:</Text>
         <FlatList
           data={transactions}
-          keyExtractor={(item, index) => index.toString()}
+          keyExtractor={(item) => item.id.toString()}
           renderItem={({ item }) => (
-            <Text style={styles.transactionItem}>₹{item.toFixed(2)}</Text>
+            <Text style={styles.transactionItem}>₹{item.amount.toFixed(2)} - {item.date}</Text>
           )}
         />
       </View>
@@ -133,11 +137,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8f8f8',
     flex: 1,
   },
-  ocrText: {
-    color: '#333',
-    fontSize: 14,
+  loadingText: {
+    color: '#1E90FF',
+    fontSize: 16,
     fontWeight: 'bold',
-    padding: 10,
+    marginTop: 10,
     textAlign: 'center',
   },
   transactionHeader: {

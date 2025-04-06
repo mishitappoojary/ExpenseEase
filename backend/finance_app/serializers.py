@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import UserPreferences, UserStatistics, LinkedAccount, Notification, FinancialAccount
+from .models import UserPreferences, UserStatistics, LinkedAccount, Notification, FinancialAccount, Transaction
 
 User = get_user_model()
 
@@ -60,3 +60,9 @@ class NotificationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Notification
         fields = "__all__"
+
+class TransactionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Transaction
+        fields = ['id', 'user', 'amount', 'description', 'date']
+        read_only_fields = ['id', 'user', 'date']
