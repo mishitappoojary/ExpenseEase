@@ -33,6 +33,7 @@ const SignInScreen: React.FC = () => {
     }
     try {
       setLoading(true);
+      console.log("Sending login request with:", { username: email, password });
       const response = await axios.post(`${API_BASE_URL}/login/`, { username: email, password });
       const accessToken = response.data.access;
       await login(accessToken);
@@ -48,7 +49,11 @@ const SignInScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <Image source={require('../../assets/adaptive-icon.png')} style={styles.logo} />
+      <Image
+        // source={require('../../assets/adaptive-icon.png')}
+        source={require('../../assets/adaptive-icon2.jpg')}
+        style={styles.logo}
+      />
       <Text style={styles.title}>Sign In</Text>
 
       <TextInput style={styles.input} placeholder="Email" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />

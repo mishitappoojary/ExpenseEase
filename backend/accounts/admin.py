@@ -25,6 +25,13 @@ class CustomUserAdmin(UserAdmin):
     list_filter = ('is_staff', 'is_superuser', 'is_active', 'date_joined')
 
 
+class TransactionAdmin(admin.ModelAdmin):
+    list_display = ('user', 'amount', 'description', 'date')
+    search_fields = ('user__email', 'description')
+    list_filter = ('date',)
+
+admin.site.unregister(User)
+admin.site.register(User, CustomUserAdmin)
 admin.site.register(UserProfile)
 admin.site.register(UserPreference)
 admin.site.register(Notification)

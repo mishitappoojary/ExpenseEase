@@ -48,10 +48,6 @@ export const StyledHorizontalBar = styled(HorizontalBar)`
   margin-right: 12px;
 `;
 
-export const StyledDivider = styled(Divider)`
-  margin: 24px 0;
-`;
-
 export const Button = styled.TouchableOpacity.attrs({ activeOpacity: 0.8 })`
   flex: 1;
   flex-direction: row;
@@ -61,4 +57,18 @@ export const Button = styled.TouchableOpacity.attrs({ activeOpacity: 0.8 })`
   background-color: ${({ theme }) => theme.colors.primary};
   border-radius: 100px;
   margin-top: 48px;
+`;
+
+export const TransactionItem = styled.View`
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background-color: ${({ theme }) => theme.colors.secondary};
+`;
+
+// ✅ Styled transaction details container
+export const TransactionDetails = styled.View`
+  flex: 1;
+  margin-right: 10px;
 `;

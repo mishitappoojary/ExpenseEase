@@ -61,6 +61,10 @@ const CameraScreen: React.FC = () => {
         console.error('Failed to take picture:', error);
         Alert.alert('Error', 'Failed to capture image');
       }
+    } catch (error) {
+      setLoading(false);
+      console.error('Upload Error:', error);
+      Alert.alert('Upload Failed', 'Could not process the receipt.');
     }
   };
 

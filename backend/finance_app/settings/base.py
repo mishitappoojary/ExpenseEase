@@ -137,13 +137,13 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         # 'rest_framework.authentication.SessionAuthentication',
         # 'rest_framework.authentication.BasicAuthentication',
-        # 'rest_framework.authentication.TokenAuthentication',
+        # 'rest_framework.authentication.JWTAuthentication',
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
 }
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),  # Short expiry for security
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),  # Short expiry for security
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
     'ROTATE_REFRESH_TOKENS': True,  # Generates a new refresh token on refresh
     'BLACKLIST_AFTER_ROTATION': True,
@@ -178,13 +178,15 @@ CORS_ALLOW_HEADERS = [
 
 CSRF_TRUSTED_ORIGINS = ['http://192.168.29.253:8000', "http://192.168.29.253:3000", 'http://127.0.0.1:8000', 'http://10.0.2.2:8000', "http://192.168.0.103" ]
 CSRF_COOKIE_SECURE = False  # Set to True in production with HTTPS
+CSRF_USE_SESSIONS = False
+CSRF_COOKIE_HTTPONLY = False
 
 from django.middleware.csrf import CsrfViewMiddleware
 
 class DisableCSRFOnJWT(CsrfViewMiddleware):
     def _reject(self, request, reason):
-        if request.path.startswith('/api/token/'):
-            return None  # Disable CSRF for token endpoints
+        if request.path.startswith('/api/'):
+            return None
         return super()._reject(request, reason)
 
 MIDDLEWARE.insert(4, 'backend.finance_app.settings.base.DisableCSRFOnJWT')

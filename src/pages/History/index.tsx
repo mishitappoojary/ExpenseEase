@@ -1,218 +1,53 @@
-import { MaterialIcons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useAppContext, MonthlyBalance } from '../../contexts/AppContext';
-import {
-  ActivityIndicator,
-  ListRenderItemInfo,
-  RefreshControl,
-} from 'react-native';
+import React, { useState } from 'react';
+import { ActivityIndicator, FlatList, RefreshControl, View } from 'react-native';
 import { useTheme } from 'styled-components/native';
-import FlexContainer from '../../components/FlexContainer';
-import Money from '../../components/Money';
-import ScreenContainer from '../../components/ScreenContainer';
 import Text from '../../components/Text';
-import { checkCurrentYear } from '../../utils/date';
-import {
-  Button,
-  HorizontalBarContainer,
-  ItemHeader,
-  MonthTrendContainer,
-  StyledDivider,
-  StyledFlatList,
-  StyledHeader,
-  StyledHorizontalBar,
-  TouchableIconContainer,
-} from './styles';
-
-const ITEMS_PER_PAGE = 4;
+import ScreenContainer from '../../components/ScreenContainer';
+import Money from '../../components/Money';
+import { useAppContext } from '../../contexts/AppContext'; // ✅ Import AppContext
+import { StyledHeader, StyledFlatList, StyledDivider, TransactionItem, TransactionDetails } from './styles';
 
 const History: React.FC = () => {
-  const [isLoadingMore, setLoadingMore] = useState(false);
-
-  const {
-    isLoading,
-    hideValues,
-    setHideValues,
-    monthlyBalances,
-    fetchMonthlyBalancesPage,
-    currentMonthlyBalancesPage,
-    setCurrentMonthlyBalancesPage,
-    minimumDateWithData,
-    setDate,
-  } = useAppContext();
-
+  const { allTransactions, fetchTransactions, fetchManualTransactions } = useAppContext(); // ✅ Get transactions & fetch function from context
+  
+  const [refreshing, setRefreshing] = useState(false);
   const theme = useTheme();
-  const navigation = useNavigation();
 
-  const maxAmount = useMemo(() => {
-    return monthlyBalances.reduce(
-      (currentMax, item) => Math.max(currentMax, item.incomes, item.expenses),
-      0,
-    );
-  }, [monthlyBalances]);
+  // Handle pull-to-refresh
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchTransactions(); // ✅ Refresh data from backend
+    await fetchManualTransactions(); // ✅ Refresh manual transactions
+    setRefreshing(false);
+  };
 
-  const canLoadMore = useMemo(() => {
-    if (monthlyBalances.length === 0) {
-      return true;
-    }
-
-    const lastFetchedMonth = monthlyBalances[monthlyBalances.length - 1].date;
-    return lastFetchedMonth.isAfter(minimumDateWithData);
-  }, [minimumDateWithData, monthlyBalances]);
-
-  const fetchPage = useCallback(
-    async (page: number) => {
-      await fetchMonthlyBalancesPage(ITEMS_PER_PAGE, page);
-      setCurrentMonthlyBalancesPage(page + 1);
-    },
-    [fetchMonthlyBalancesPage, setCurrentMonthlyBalancesPage],
+  // Render individual transaction items
+  const renderItem = ({ item }: { item: any }) => (
+    <TransactionItem>
+      <TransactionDetails>
+        <Text variant="title">{item.description || 'Transaction'}</Text>
+        <Text variant="subtitle">{new Date(item.date).toLocaleDateString()}</Text>
+      </TransactionDetails>
+      <Money value={item.amount} color={item.amount >= 0 ? 'income' : 'expense'} />
+    </TransactionItem>
   );
-
-  useEffect(() => {
-    if (currentMonthlyBalancesPage === 0) {
-      fetchPage(0);
-    }
-  }, [currentMonthlyBalancesPage, fetchPage]);
-
-  const handleItemPress = useCallback(
-    (item: MonthlyBalance) => {
-      navigation.navigate('transactions');
-      setDate(item.date);
-    },
-    [navigation, setDate],
-  );
-
-  const handleLoadMore = useCallback(async () => {
-    setLoadingMore(true);
-    await fetchPage(currentMonthlyBalancesPage);
-    setLoadingMore(false);
-  }, [currentMonthlyBalancesPage, fetchPage]);
-
-  const renderItem = useCallback(
-    ({ item }: ListRenderItemInfo<MonthlyBalance>) => {
-      const { date, incomes, expenses } = item;
-
-      const dateText = checkCurrentYear(date)
-        ? date.format('MMMM')
-        : date.format('MMMM YYYY');
-
-      const balance = incomes - expenses;
-
-      const showTrendingIcon = !hideValues
-        ? balance !== 0
-          ? true
-          : false
-        : false;
-
-      const incomesBarGrow =
-        maxAmount === 0 ? 1 : Math.max(incomes / maxAmount, 0.005);
-      const expensesBarGrow =
-        maxAmount === 0 ? 1 : Math.max(expenses / maxAmount, 0.005);
-
-      const expensesSurplusBarGrow =
-        balance < 0 ? (expenses - incomes) / expenses : 0;
-
-      return (
-        <FlexContainer gap={12}>
-          <ItemHeader>
-            <MonthTrendContainer>
-              <Text variant="heading-regular" transform="capitalize">
-                {dateText}
-              </Text>
-              {showTrendingIcon ? (
-                <MaterialIcons
-                  name={balance > 0 ? 'trending-up' : 'trending-down'}
-                  color={balance > 0 ? theme.colors.income : theme.colors.error}
-                  size={24}
-                />
-              ) : null}
-            </MonthTrendContainer>
-            <TouchableIconContainer onPress={() => handleItemPress(item)}>
-              <MaterialIcons
-                name="navigate-next"
-                color={theme.colors.primary}
-                size={28}
-              />
-            </TouchableIconContainer>
-          </ItemHeader>
-          <Text>
-            Balance: <Money value={balance} variant="default-bold" />
-          </Text>
-          <HorizontalBarContainer>
-            <StyledHorizontalBar color="income" grow={incomesBarGrow} />
-            <Money
-              value={incomes}
-              variant="default-bold"
-              color={hideValues ? 'text' : 'income'}
-            />
-          </HorizontalBarContainer>
-          <HorizontalBarContainer>
-            <StyledHorizontalBar
-              color="expense"
-              grow={expensesBarGrow}
-              surplusGrow={expensesSurplusBarGrow}
-            />
-            <Money
-              value={expenses}
-              variant="default-bold"
-              color={hideValues ? 'text' : balance < 0 ? 'error' : 'expense'}
-            />
-          </HorizontalBarContainer>
-        </FlexContainer>
-      );
-    },
-    [hideValues, theme, maxAmount, handleItemPress],
-  );
-
-  const renderItemSeparator = useCallback(() => <StyledDivider />, []);
-
-  const renderFooter = useCallback(
-    () =>
-      monthlyBalances.length > 0 ? (
-        canLoadMore ? (
-          <Button onPress={handleLoadMore}>
-            {isLoading ? (
-              <ActivityIndicator size={24} color={theme.colors.textWhite} />
-            ) : (
-              <Text variant="title" color="textWhite">
-                See more
-              </Text>
-            )}
-          </Button>
-        ) : null
-      ) : null,
-    [canLoadMore, handleLoadMore, isLoading, monthlyBalances, theme],
-  );
-
-  const handleRefresh = useCallback(async () => {
-    fetchPage(0);
-  }, [fetchPage]);
 
   return (
     <ScreenContainer>
-      <StyledHeader
-        title="Monthly History"
-        actions={[
-          {
-            icon: hideValues ? 'visibility-off' : 'visibility',
-            onPress: () => setHideValues(!hideValues),
-          },
-        ]}
-      />
-      <StyledFlatList
-        refreshControl={
-          <RefreshControl
-            refreshing={isLoading ? (!isLoadingMore ? true : false) : false}
-            onRefresh={handleRefresh}
-            colors={[theme.colors.primary]}
-          />
-        }
-        data={monthlyBalances}
-        renderItem={renderItem}
-        ItemSeparatorComponent={renderItemSeparator}
-        ListFooterComponent={renderFooter}
-      />
+      <StyledHeader title="Transaction History" />
+      {allTransactions.length === 0 ? (
+        <View style={{ padding: 20, alignItems: 'center' }}>
+          <Text>No transactions</Text>
+        </View>
+      ) : (
+        <StyledFlatList
+          data={allTransactions}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={renderItem}
+          ItemSeparatorComponent={() => <StyledDivider />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+        />
+      )}
     </ScreenContainer>
   );
 };

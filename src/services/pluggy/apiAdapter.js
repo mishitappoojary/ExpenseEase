@@ -90,20 +90,20 @@ api.interceptors.response.use(
 const plaidApi = {
   createLinkToken: async () =>
     api.post("/plaid/create-link-token/").then((res) => res.data.link_token),
-  exchangePublicToken: async (publicToken) => {
-    console.warn("⚠️ exchangePublicToken is not used. Remove it if unnecessary.");
-    return { success: true };
-  },
+  exchangePublicToken: async () =>
+    api.post("/plaid/exchange-public-token/").then((res) => res.data),  
   fetchTransactions: async () =>
     api.get("/plaid/transactions/").then((res) => res.data.transactions),
+  fetchManualTransactions: async () =>
+    api.get("/transactions/").then((res) => res.data),
   fetchAccounts: async () =>
     api.get("/plaid/accounts/").then((res) => res.data.accounts),
   fetchLiabilities: async () =>
-    api.get("/plaid/liabilities/").then((res) => res.data),
+    api.get("/plaid/liabilities/").then((res) => res.data.liabilities),
   fetchInvestments: async () =>
     api.get("/plaid/investments/").then((res) => res.data.investments),
   fetchIncome: async () =>
-    api.get("/plaid/incomes/").then((res) => res.data),
+    api.get("/plaid/incomes/").then((res) => res.data.incomes),
   fetchInstitutions: async () =>
     api.get("/plaid/institutions/").then((res) => res.data.institutions),
   getInstitutionDetails: async (institutionId) =>

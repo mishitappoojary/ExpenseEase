@@ -65,7 +65,7 @@ const AddTransactionButton: React.FC = () => {
           <Animated.View style={[styles.iconContainer, iconStyle(0)]}>
             <TouchableOpacity onPress={requestCameraPermission}>
               <View style={styles.iconBackground}>
-                <FontAwesome5 name="camera" size={20} color="#FFF" />
+                <FontAwesome5 name="camera" size={20} color="#40BEBE" />
               </View>
             </TouchableOpacity>
           </Animated.View>
@@ -74,7 +74,7 @@ const AddTransactionButton: React.FC = () => {
               onPress={() => navigation.navigate('AddTransaction')}
             >
               <View style={styles.iconBackground}>
-                <FontAwesome5 name="keyboard" size={20} color="#FFF" />
+                <FontAwesome5 name="keyboard" size={20} color="#40BEBE" />
               </View>
             </TouchableOpacity>
           </Animated.View>
@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
     padding: 15,
   },
   addButtonText: {
-    color: '#FFF',
+    color: '#40BEBE',
     fontSize: 24,
   },
   container: {

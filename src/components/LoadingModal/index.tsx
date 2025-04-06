@@ -36,7 +36,8 @@ const LoadingModal: React.FC<LoadingModalProps> = ({ text }) => {
       <Container>
         <Animated.View style={{ transform: [{ scale: anim.current }] }}>
           <Image
-            source={require('../../assets/adaptive-icon.png')}
+            // source={require('../../assets/adaptive-icon.png')}
+            source={require('../../assets/adaptive-icon2.jpg')}
             style={{ height: 180, width: 180 }}
           />
         </Animated.View>

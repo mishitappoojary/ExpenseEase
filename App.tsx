@@ -10,7 +10,7 @@ import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import Toast from 'react-native-toast-message';
 import * as Font from 'expo-font';
 import { Inter_400Regular, Inter_700Bold } from '@expo-google-fonts/inter';
-
+import * as Updates from 'expo-updates';
 import { AppContextProvider } from './src/contexts/AppContext';
 import { CategoriesProvider } from './src/contexts/CategoriesContext';
 import HooksProvider from './src/hooks';
@@ -19,6 +19,7 @@ import StackRoutes from './src/routes/stack.routes';
 import AuthRoutes from './src/routes/AuthRoutes';
 import dark from './src/theme/dark';
 import light from './src/theme/light';
+
 
 SplashScreen.preventAutoHideAsync();
 
@@ -37,11 +38,41 @@ export default function App() {
     setFontsLoaded(true);
   };
 
+  useEffect(() => {
+    const clearStorageOnRestart = async () => {
+      if (__DEV__) { // Only clear in development mode
+        console.log("🗑️ Clearing AsyncStorage on Expo restart...");
+        await AsyncStorage.clear();
+      }
+    };
+    clearStorageOnRestart();
+  }, []);
+
+  // const checkAuth = async () => {
+  //   try {
+  //     const token = await AsyncStorage.getItem('access_token'); // Ensure consistency
+  //     console.log('🔍 Retrieved access_token:', token);
+  //     setIsAuthenticated(!!token);
+  //   } catch (error) {
+  //     console.error('❌ Failed to retrieve access token:', error);
+  //     setIsAuthenticated(false);
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // };
+
   const checkAuth = async () => {
     try {
       const token = await AsyncStorage.getItem('access_token');
       console.log('🔍 Retrieved access_token:', token);
-      setIsAuthenticated(!!token);
+      
+      if (token) {
+        setIsAuthenticated(true);
+      } else {
+        console.log("🚫 No valid token found. Clearing storage...");
+        await AsyncStorage.clear();  // Clears storage ONLY if there's no valid token
+        setIsAuthenticated(false);
+      }
     } catch (error) {
       console.error('❌ Failed to retrieve access token:', error);
       setIsAuthenticated(false);
@@ -49,6 +80,7 @@ export default function App() {
       setIsLoading(false);
     }
   };
+
 
   useEffect(() => {
     (async () => {
