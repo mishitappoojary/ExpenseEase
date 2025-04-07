@@ -52,6 +52,7 @@ PLAID_ENV = 'sandbox'  # sandbox or production
 PLAID_CLIENT_ID="671221491d546a0019a1859a"
 PLAID_SECRET="bec2b4517049ec2a616759317f63cc"
 PLAID_ENV="sandbox"
+
 DEBUG=True
 CELERY_BROKER_URL="redis://localhost:6379/0"
 APP_URL="http://localhost:8000",

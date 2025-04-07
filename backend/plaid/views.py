@@ -51,7 +51,10 @@ def create_link_token(request):
         )
         
         response = plaid_client.link_token_create(request_config)
-        return Response({'link_token': response['link_token']})
+
+        logger.info(f"[Plaid] Link token response: {response.to_dict()}")
+
+        return Response({'link_token': response.link_token})
     
     except Exception as e:
         logger.error(f"Error creating link token: {str(e)}")

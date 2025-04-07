@@ -1,11 +1,15 @@
-from django.conf import settings
-
+from django.conf import settings  # Import settings properly
 import plaid
 from plaid.api import plaid_api
 from plaid.model.country_code import CountryCode
 from plaid.model.products import Products
 import os
 
+# Ensure Django settings are loaded (if not already loaded)
+if not settings.configured:
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "finance_app.settings.base")  # Replace finance_app with your project name if needed
+    import django
+    django.setup()  # Load the Django settings
 
 class PlaidConfig:
     """
@@ -15,7 +19,7 @@ class PlaidConfig:
     def __init__(self):
         self.language = "en"
         self.version = "2020-09-14"
-        self.client_name = settings.APP_NAME
+        self.client_name = settings.APP_NAME  # Access settings using django.conf.settings
         self.client_id = settings.PLAID_CLIENT_ID
         self.secret = settings.PLAID_SECRET
         self.products = self._get_products()
@@ -68,7 +72,7 @@ class PlaidConfig:
         """
         Returns the redirect URI.
         """
-        return f"{settings.APP_URL}/finance"
+        return f"{settings.APP_URL}/finance"  # Settings accessed correctly here
 
     def _get_webhook_uri(self) -> str:
         """
