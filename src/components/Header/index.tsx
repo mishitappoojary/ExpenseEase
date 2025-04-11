@@ -42,7 +42,14 @@ const Header: React.FC<HeaderProps> = ({
   );
 
   return (
-    <Container {...viewProps}>
+    <Container
+  {...Object.fromEntries(
+    Object.entries(viewProps).filter(
+      ([key, value]) => !(key === 'hitSlop' && value == null)
+    )
+  )}
+>
+
       {!hideGoBackIcon ? (
         canGoBack ? (
           <MaterialIcons
