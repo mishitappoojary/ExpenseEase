@@ -56,15 +56,26 @@ const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <Container {...viewProps}>
+    <Container
+      {...Object.fromEntries(
+        Object.entries(viewProps).filter(
+          ([key, value]) => !(key === 'hitSlop' && value == null)
+        )
+      )}
+    >
       {userIcon && (
         <UserIconContainer>
-          <MaterialIcons name={userIcon} color={'white'} size={40} onPress={toggleUserDropdown} />
+          <MaterialIcons
+            name={userIcon}
+            color="white"
+            size={40}
+            onPress={toggleUserDropdown}
+          />
           {showUserDropdown && (
             <DropdownMenu>
               <DropdownItem>
                 <Text style={{ fontWeight: 'bold', fontSize: 16, color: theme.colors.dark }}>
-                  Hi, { userName } !!
+                  Hi, {userName} !!
                 </Text>
               </DropdownItem>
               <DropdownItem>

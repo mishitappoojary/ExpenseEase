@@ -88,10 +88,38 @@ api.interceptors.response.use(
 
 // ✅ Plaid API Wrapper
 const plaidApi = {
-  createLinkToken: async () =>
-    api.post("/plaid/create-link-token/").then((res) => res.data.link_token),
-  exchangePublicToken: async () =>
-    api.post("/plaid/exchange-public-token/").then((res) => res.data),  
+  createLinkToken: async () => {
+    try {
+      const response = await api.post("/plaid/create-link-token/");
+      if (!response.data?.link_token) {
+        throw new Error("No link_token received from server");
+      }
+      return response.data.link_token;
+    } catch (error) {
+      console.error("Plaid link token error:", error);
+      throw new Error(
+        error.response?.data?.message || "Failed to create Plaid link"
+      );
+    }
+  },
+
+  exchangePublicToken: async (publicToken) => {
+    try {
+      const response = await api.post("/plaid/exchange-public-token/", { 
+        public_token: publicToken 
+      });
+      
+      if (!response.data?.success) {
+        throw new Error("Token exchange failed on server");
+      }
+      return response.data;
+    } catch (error) {
+      console.error("Public token exchange error:", error);
+      throw new Error(
+        error.response?.data?.message || "Failed to exchange public token"
+      );
+    }
+  }, 
   fetchTransactions: async () =>
     api.get("/plaid/transactions/").then((res) => res.data.transactions),
   fetchManualTransactions: async () =>

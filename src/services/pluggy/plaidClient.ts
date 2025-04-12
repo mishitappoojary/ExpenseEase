@@ -24,7 +24,7 @@ export class PlaidClient extends BaseApi {
       '/link/token/create',
       {
         user: { client_user_id: userId },
-        client_name: 'Your App',
+        client_name: 'ExpenseEase',
         products: ['transactions'],
         country_codes: ['US'],
         language: 'en',
