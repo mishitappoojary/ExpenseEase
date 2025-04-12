@@ -1,7 +1,7 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { Moment } from 'moment';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Alert,
   LayoutAnimation,
@@ -11,10 +11,15 @@ import {
   ScrollView,
   UIManager,
   Button,
+  FlatList,
+  StyleSheet,
+  PermissionsAndroid,
   Text,
   View,
+  Modal,
   TouchableOpacity,
 } from 'react-native';
+import SmsAndroid from 'react-native-get-sms-android';
 import { Camera } from 'expo-camera'; // Import camera functionality
 import { useTheme } from 'styled-components/native';
 import FlexContainer from '../../components/FlexContainer';
@@ -53,6 +58,9 @@ const Home: React.FC = () => {
   const [hasCameraPermission, setCameraPermission] = useState<boolean | null>(null,);
   const [plaidModalVisible, setPlaidModalVisible] = useState(false);
   const [transactionModalVisible, setTransactionModalVisible] = useState(false);
+  const latestTimestampRef = useRef(0);
+  const [showAllTransactions, setShowAllTransactions] = useState(false);
+
 
   const theme = useTheme();
   const navigation = useNavigation();
@@ -86,6 +94,12 @@ const Home: React.FC = () => {
     fetchIncome();
     fetchLiabilities();
   }, [date]);
+
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      requestSmsPermission();
+    }
+  }, []);
 
   const balance = totalIncomes - totalExpenses;
   const showTrendingIcon = hideValues ? false : balance !== 0;
@@ -191,7 +205,171 @@ const Home: React.FC = () => {
   const handleConnectBank = () => {
     setPlaidModalVisible(true); // Later you might replace this with Plaid Link screen
   };
+
+  const requestSmsPermission = async () => {
+    const granted = await PermissionsAndroid.request(
+      PermissionsAndroid.PERMISSIONS.READ_SMS,
+      {
+        title: 'SMS Permission',
+        message: 'This app needs access to read your bank transaction SMS.',
+        buttonPositive: 'OK',
+      }
+    );
+
+    if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+      reloadMessages(); // Initial fetch of messages after permission
+    }
+  };
+  const visibleTransactions = showAllTransactions
+  ? transactions
+  : transactions.slice(0, 10);
+
+
+  // Reload messages function to fetch SMS data
+  const reloadMessages = () => {
+    console.log("🔁 Reloading messages from timestamp:", latestTimestampRef.current);
+    SmsAndroid.list(
+      JSON.stringify({
+        box: 'inbox',
+        maxCount: 1000,
+        minDate: latestTimestampRef.current || 0,
+      }),
+      (fail) => {
+        console.log('SMS fetch failed:', fail);
+      },
+      (count, smsList) => {
+        const parsed = JSON.parse(smsList);
+        const filtered = parsed.filter(
+          (msg) =>
+            msg.address &&
+            (msg.address.toUpperCase().includes('SBIUPI') ||
+              msg.address.toUpperCase().includes('HDFCBK'))
+        );
+
+        console.log(`📬 Filtered ${filtered.length} relevant messages`);
+
+        const uniqueRefs = new Set(transactions.map((tx) => tx.refNumber));
+        const newMessages = [];
+
+        filtered.forEach((msg) => {
+          console.log('💬 SMS BODY:', msg.body, '| DATE:', msg.date);
+          const cleaned = parseBankSMS(msg);
+          if (cleaned && !uniqueRefs.has(cleaned.refNumber)) {
+            uniqueRefs.add(cleaned.refNumber);
+            newMessages.push(cleaned);
+          }
+        });
+
+        if (newMessages.length > 0) {
+          const newestTimestamp = Math.max(...filtered.map((msg) => msg.date));
+          latestTimestampRef.current = Math.max(latestTimestampRef.current, newestTimestamp);
+          setTransactions((prev) => [...newMessages, ...prev]);
+        }
+      }
+    );
+  };
+
+  // Parse the SMS body to extract relevant data
+  const parseBankSMS = (msg) => {
+    const { body, address, date } = msg;
+    const upperAddr = address.toUpperCase();
+    const lowerBody = body.toLowerCase();
+
+    // Check for SBI bank transactions
+    if (upperAddr.includes('SBI')) {
+      const creditMatch = body.match(/credited by Rs\.?(\d+(\.\d+)?)/i);
+      const debitMatch = body.match(/debited by (\d+(\.\d+)?)/i);
+      const merchantMatch = body.match(/(?:trf|transfer) (?:to|from) (.+?) Ref(?: No)?/i);
+      const refMatch =
+        body.match(/Ref(?: No)?[ :]?(\d+)/i) || body.match(/Refno (\d+)/i);
+
+      if ((creditMatch || debitMatch) && merchantMatch && refMatch) {
+        const amount = parseFloat((creditMatch || debitMatch)[1]);
+        return {
+          bank: 'SBI',
+          amount,
+          type: creditMatch ? 'credit' : 'debit',
+          merchant: merchantMatch[1].trim(),
+          refNumber: refMatch[1],
+          timestamp: date,
+        };
+      }
+    }
+
+    // Check for HDFC transactions
+    if (upperAddr.includes('HDFC')) {
+      const creditMatch = body.match(/Received Rs\.?(\d+(\.\d+)?)/i);
+      const debitMatch = body.match(/Sent Rs\.?(\d+(\.\d+)?)/i);
+      const merchantMatch = body.match(/(?:to|from) ([^\n]+?)(?:\n| on)/i);
+      const refMatch = body.match(/Ref[: ](\d+)/i);
+
+      if ((creditMatch || debitMatch) && merchantMatch && refMatch) {
+        const amount = parseFloat((creditMatch || debitMatch)[1]);
+        return {
+          bank: 'HDFC',
+          amount,
+          type: creditMatch ? 'credit' : 'debit',
+          merchant: merchantMatch[1].trim(),
+          refNumber: refMatch[1],
+          timestamp: date,
+        };
+      }
+    }
+    return null;
+  };
+
+  const fetchCategoryFromBackend = async (merchant) => {
+    try {
+      const response = await fetch('http://192.168.0.108:8000/api/get-merchant-category/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ merchant: merchant }),
+      });
   
+      const data = await response.json();
+      if (data.category) {
+        console.log("Merchant Category:", data.category);
+        // Now you can use this category as needed
+      } else {
+        console.error("Error fetching category:", data.error);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    }
+  };
+  
+
+  const renderItem = ({ item }) => {
+    const isCredit = item.type === 'credit';
+    const transactionColor = isCredit ? '#4CAF50' : '#F44336';
+    const transactionType = isCredit ? 'Credited' : 'Debited';
+  
+    return (
+      <View style={styles.transactionItem}>
+        <View style={[styles.leftIcon, { backgroundColor: transactionColor }]}>
+          <MaterialIcons name={isCredit ? 'arrow-downward' : 'arrow-upward'} size={16} color="#fff" />
+        </View>
+ 
+        <View style={styles.transactionContent}>
+          <Text style={styles.bankLine}>
+            <Text style={styles.bankName}>{item.bank}</Text> — {transactionType}
+          </Text>
+          <Text style={styles.transactionText}>
+            ₹ {item.amount} {isCredit ? 'from' : 'to'} {item.merchant}
+          </Text>
+          <Text style={styles.transactionDate}>{new Date(item.timestamp).toLocaleString()}</Text>
+        </View>
+
+        <View style={styles.categoryCircle}>
+          <MaterialIcons name="fastfood" size={16} color="#fff" />
+        </View>
+      </View>
+    );
+  };
+  
+
   return (
     <ScreenContainer>
       <ScrollView
@@ -243,7 +421,7 @@ const Home: React.FC = () => {
             </FlexContainer>
           </View>
 
-          <View style={styles.balanceWithTrending}>
+         <View style={styles.balanceWithTrending}>
             <View style={styles.balanceWithTrending}>
               <Text>
                 Balance: <Money value={balance} variant="default-bold" />
@@ -265,6 +443,33 @@ const Home: React.FC = () => {
               <Text style={styles.connectBankText}>Connect Bank</Text>
             </TouchableOpacity>
           </View>
+
+          <View style={styles.SMScontainer}>
+            <Text style={styles.header}>Extracted Transactions</Text>
+            <TouchableOpacity onPress={reloadMessages}>
+              <Text style={styles.reloadButton}>Reload</Text>
+            </TouchableOpacity>
+
+            <FlatList
+              data={visibleTransactions}
+              keyExtractor={(item) => item.refNumber}
+              renderItem={renderItem}
+              ListFooterComponent={
+                transactions.length > 10 && (
+                  <TouchableOpacity
+                    onPress={() => setShowAllTransactions(!showAllTransactions)}
+                    style={{ alignItems: 'center', padding: 10 }}
+                  >
+                    <Text style={{ color: '#40BEBE', fontWeight: 'bold' }}>
+                      {showAllTransactions ? 'Show Less ▲' : 'Show More ▼'}
+                    </Text>
+                  </TouchableOpacity>
+                )
+              }
+            />
+          </View>
+
+
         </View>
       </ScrollView>
         <TouchableOpacity

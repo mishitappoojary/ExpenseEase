@@ -16,7 +16,6 @@ import { CategoriesProvider } from './src/contexts/CategoriesContext';
 import HooksProvider from './src/hooks';
 import { PlaidServiceProvider } from './src/hooks/useplaidService';
 import StackRoutes from './src/routes/stack.routes';
-import AuthRoutes from './src/routes/AuthRoutes';
 import dark from './src/theme/dark';
 import light from './src/theme/light';
 
@@ -117,8 +116,8 @@ export default function App() {
                 <BottomSheetModalProvider>
                   <SafeAreaView style={{ flex: 1 }}>
                   <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} backgroundColor={theme.colors.primary} />
-                    {isAuthenticated ? <StackRoutes /> : <AuthRoutes />}
                     <Toast />
+                    <StackRoutes />
                   </SafeAreaView>
                 </BottomSheetModalProvider>
               </GestureHandlerRootView>

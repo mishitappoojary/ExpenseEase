@@ -16,7 +16,8 @@ import { StackRouteParamList } from '../../routes/stack.routes';
 import { useAppContext } from '../../contexts/AppContext';
 
 //const API_BASE_URL = 'http://10.0.2.2:8000/api/auth';
-const API_BASE_URL = 'http://192.168.0.103:8000/api/auth';
+const API_BASE_URL = 'http://192.168.0.108:8000/api/auth';
+
 
 
 const SignInScreen: React.FC = () => {
@@ -78,9 +79,9 @@ const SignInScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
-  logo: { width: 200, height: 200, marginBottom: 20 },
-  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 20 },
+  container: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20, backgroundColor: '#fff' },
+  logo: { width: 250, height: 250 },
+  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 20, textTransform: 'uppercase' },
   input: { width: '100%', height: 40, borderWidth: 1, borderColor: '#ccc', borderRadius: 8, marginBottom: 10, paddingHorizontal: 10 },
   signInButton: { width: '100%', backgroundColor: '#4CAF50', padding: 12, borderRadius: 8, alignItems: 'center', marginTop: 10 },
   signInButtonText: { color: 'white', fontSize: 16, fontWeight: 'bold' },

@@ -18,14 +18,18 @@
     },
     "assetBundlePatterns": ["**/*"],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "This app needs camera access to take photos."
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./src/assets/adaptive-icon.png",
         "backgroundColor": "#E5E7EB"
       },
-      "package": "com.joaomlg.financeapp"
+      "package": "com.joaomlg.financeapp",
+      "permissions": ["CAMERA", "READ_SMS", "RECEIVE_SMS"]
     },
     "web": {
       "favicon": "./src/assets/favicon.png"
@@ -35,7 +39,6 @@
       "eas": {
         "projectId": "b921d485-55ff-4580-92e8-57417beb598b"
       }
-    },
-    "owner": "mishita"
+    }
   }
 }

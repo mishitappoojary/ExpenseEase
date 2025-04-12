@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, ActivityIndicator, Alert } from 'react-native';
-import { Camera } from 'expo-camera';
+import { Camera, CameraType } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
@@ -30,7 +30,7 @@ const CameraScreen: React.FC = () => {
   const cameraRef = useRef<Camera | null>(null);
 
   // Django backend API URL - update with your actual server URL
-  const API_URL = 'http://192.168.0.103:8000/api/process-receipt/';
+  const API_URL = 'http://192.168.0.108:8000/api/process-receipt/';
 
   useEffect(() => {
     console.log("Updated Categories:", categories);
@@ -61,12 +61,9 @@ const CameraScreen: React.FC = () => {
         console.error('Failed to take picture:', error);
         Alert.alert('Error', 'Failed to capture image');
       }
-    } catch (error) {
-      setLoading(false);
-      console.error('Upload Error:', error);
-      Alert.alert('Upload Failed', 'Could not process the receipt.');
     }
   };
+  
 
   const pickImage = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
@@ -142,7 +139,7 @@ const CameraScreen: React.FC = () => {
           <Camera
             ref={cameraRef}
             style={styles.camera}
-            type={Camera.Constants.Type.back}
+            type={CameraType.back}
             onCameraReady={onCameraReady}
           />
           <View style={styles.buttonContainer}>

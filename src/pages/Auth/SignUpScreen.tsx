@@ -8,7 +8,7 @@ import { StyleSheet } from 'react-native';
 import { useAppContext } from '../../contexts/AppContext';
 
 //const API_BASE_URL = 'http://10.0.2.2:8000/api/accounts';
-const API_BASE_URL = 'http://192.168.0.103:8000/api/auth';
+const API_BASE_URL = 'http://192.168.0.108:8000/api/accounts';
 
 const SignUpScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<StackRouteParamList>>();
@@ -28,7 +28,7 @@ const SignUpScreen: React.FC = () => {
     console.log('🔄 Attempting Sign Up...');
     
     try {
-      const response = await axios.post(`${API_BASE_URL}/signup/`, { username: email, password });
+      const response = await axios.post(`${API_BASE_URL}/signup/`, { email, password });
       console.log('✅ Sign-up successful:', response.data);
 
       // Use the login function from context which handles token storage and state update
@@ -39,6 +39,7 @@ const SignUpScreen: React.FC = () => {
       // when isAuthenticated becomes true in the context
     } catch (error: any) {
       console.error('❌ Sign-up error:', error.response?.data || error.message);
+      console.log('🔎 Full error object:', error);
       Alert.alert('Error', error.response?.data?.message || 'Failed to sign up. Try again.');
     } finally {
       setLoading(false);
@@ -75,24 +76,26 @@ const SignUpScreen: React.FC = () => {
         </TouchableOpacity>
       )}
 
-      <TouchableOpacity 
-        style={styles.signInButton} 
-        onPress={() => navigation.navigate('signIn')}
-        disabled={loading}
-      >
-        <Text style={styles.signInButtonText}>Already have an account? Sign In</Text>
-      </TouchableOpacity>
+        <View style={styles.signInContainer}>
+                <Text style={styles.text}>Already have an account?</Text>
+                <TouchableOpacity onPress={() => navigation.navigate('signIn')}>
+                  <Text style={styles.link}>Sign In</Text>
+                </TouchableOpacity>
+              </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
-  logo: { width: 200, height: 200, marginBottom: 20 },
-  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 20 },
+  container: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20, backgroundColor: '#fff' },
+  logo: { width: 250, height: 250 },
+  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 20, textTransform: 'uppercase' },
   input: { width: '100%', height: 40, borderWidth: 1, borderColor: '#ccc', borderRadius: 8, marginBottom: 10, paddingHorizontal: 10 },
   signUpButton: { width: '100%', backgroundColor: '#4CAF50', padding: 12, borderRadius: 8, alignItems: 'center', marginTop: 10 },
   signUpButtonText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
+  signInContainer: { flexDirection: 'row', marginTop: 20 },
+  text: { fontSize: 16 },
+  link: { fontSize: 16, color: 'blue', marginLeft: 5 },
 });
 
 export default SignUpScreen;

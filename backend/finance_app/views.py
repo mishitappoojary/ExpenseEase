@@ -37,6 +37,12 @@ from rest_framework.response import Response
 from rest_framework import status
 from paddleocr import PaddleOCR
 
+import requests
+
+API_URL = "https://trove.headline.com/api/v1/transactions/enrich"
+API_KEY = "your_api_key"
+
+
 def homepage(request):
     """
     Simple homepage view that returns JSON or HTML depending on the request.
@@ -319,3 +325,27 @@ class TransactionListCreateView(generics.ListCreateAPIView):
         print(f"DEBUG: is instance of User? {isinstance(self.request.user, User)}")
 
         serializer.save(user=self.request.user)
+
+
+@csrf_exempt
+def get_merchant_category(request):
+    if request.method == "POST":
+        merchant = request.data.get("merchant")
+
+        if merchant:
+            try:
+                payload = {"description": merchant, "date": "2023-08-06", "user_id": "TROVEUSER1"}
+                headers = {"X-API-KEY": API_KEY, "Content-Type": "application/json"}
+
+                response = requests.post(API_URL, json=payload, headers=headers)
+                if response.status_code == 200:
+                    data = response.json()
+                    category = data.get("categories", [None])[0]  # Extract category if available
+                    return JsonResponse({"category": category})
+
+                return JsonResponse({"error": "Unable to fetch category"}, status=500)
+
+            except Exception as e:
+                return JsonResponse({"error": str(e)}, status=500)
+        return JsonResponse({"error": "Merchant data not provided"}, status=400)
+    return JsonResponse({"error": "Invalid request method"}, status=405)

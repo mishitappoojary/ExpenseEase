@@ -126,4 +126,79 @@ export const styles = StyleSheet.create({
     position: 'absolute',
     right: 0,
   },
+  transactionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    padding: 12,
+    marginVertical: 6,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  
+  leftIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  
+  transactionContent: {
+    flex: 1,
+  },
+  
+  bankLine: {
+    fontWeight: 'bold',
+    fontSize: 14,
+    marginBottom: 2,
+  },
+  
+  bankName: {
+    color: '#333',
+  },
+  
+  transactionText: {
+    fontSize: 14,
+    color: '#555',
+  },
+  
+  transactionDate: {
+    fontSize: 11,
+    color: '#aaa',
+    marginTop: 2,
+  },
+  
+  categoryCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#40BEBE',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 8,
+  },
+  SMScontainer: {
+    flex: 1,
+    padding: 10,
+  },
+  
+  header: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  
+  reloadButton: {
+    fontSize: 14,
+    color: '#40BEBE',
+    fontWeight: 'bold',
+    marginBottom: 12,
+  },
+  
+  
 });
