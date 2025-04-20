@@ -16,8 +16,8 @@ import {
 
 type MonthYearPickerProps = {
   isOpen: boolean;
-  selectedDate: Moment;
-  minimumDate: Moment;
+  selectedDate: Moment | null;
+  minimumDate: Moment | null;
   onChange?: (value: Moment) => void;
   onClose?: () => void;
 };
@@ -34,8 +34,8 @@ const MonthYearPicker: React.FC<MonthYearPickerProps> = ({
   onChange,
   onClose,
 }) => {
-  const [displayedYear, setDisplayedYear] = useState(currentYearNumber);
-
+  const [displayedYear, setDisplayedYear] = useState(selectedDate.year());
+  
   const theme = useTheme();
 
   const selectedMonth = selectedDate
@@ -118,7 +118,7 @@ const MonthYearPicker: React.FC<MonthYearPickerProps> = ({
           <Header>
             <ActionButton
               onPress={prevYear}
-              disabled={displayedYear <= minimumDateYear}
+              disabled={minimumDate ? displayedYear <= minimumDate.year() : false}
             >
               <MaterialIcons
                 name="navigate-before"

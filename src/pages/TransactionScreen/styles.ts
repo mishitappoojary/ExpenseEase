@@ -1,68 +1,165 @@
 import { StyleSheet } from 'react-native';
 
-const styles = StyleSheet.create({
+export default StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
-    backgroundColor: '#f9f9f9',
+    backgroundColor: '#284D63', // page background color
+    padding: 20,
   },
   header: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 20,
+    marginTop: 20,
     textAlign: 'center',
-    marginBottom: 16,
   },
+
+  subheader: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#F0F8FF',
+    marginBottom: 20,
+    marginTop: 10,
+    textAlign: 'center',
+  },
+
   inputContainer: {
-    backgroundColor: 'white',
-    padding: 16,
-    borderRadius: 10,
-    marginBottom: 16,
-    elevation: 3,
+    marginBottom: 20,
   },
   input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
+    backgroundColor: '#fff',
+    borderRadius: 8,
     padding: 10,
     marginBottom: 10,
-    borderRadius: 5,
-    backgroundColor: '#fff',
+    fontSize: 16,
+    color: '#000',
   },
-  addButton: {
+  typeSelector: {
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#007bff',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 30,
-    alignSelf: 'center',
-    marginTop: 10,
+    justifyContent: 'space-between',
+    marginBottom: 10,
   },
-  addButtonText: {
-    color: 'white',
-    fontSize: 16,
-    marginLeft: 8,
-  },
-  emptyText: {
-    textAlign: 'center',
-    fontSize: 16,
-    color: 'gray',
-    marginTop: 20,
-  },
-  transactionItem: {
-    padding: 12,
-    backgroundColor: '#40BEBE',
+  typeButton: {
+    backgroundColor: '#3C6E71', // Default button color
+    padding: 10,
     borderRadius: 8,
-    marginBottom: 8,
-    elevation: 2,
+    width: '48%',
+    alignItems: 'center',
   },
-  transactionName: {
+  selectedTypeButton: {
+    backgroundColor: '#00A8A1', // Highlighted button color
+  },
+  typeButtonText: {
+    color: '#fff',
     fontSize: 16,
+  },
+  selectedTypeText: {
     fontWeight: 'bold',
   },
+  categoryButton: {
+    backgroundColor: '#3C6E71',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  categoryButtonText: {
+    color: '#fff',
+    fontSize: 16,
+  },
+  addButton: {
+    backgroundColor: '#00A8A1', // Greenish button color
+    padding: 15,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    marginLeft: 10,
+  },
+  selectedCategory: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  transactionItem: {
+    flexDirection: 'row',
+    padding: 15,
+    borderRadius: 12,
+    marginBottom: 15,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  transactionDetails: {
+    flexDirection: 'row',
+    flex: 1,
+    alignItems: 'center',
+  },
+  leftCircle: {
+    width: 35,
+    height: 35,
+    backgroundColor: '#fff',
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 15,
+  },
+  transactionInfo: {
+    flex: 1,
+  },
+  transactionName: {
+    fontSize: 18,
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  amountContainer: {
+    marginTop: 5,
+  },
   transactionAmount: {
-    fontSize: 14,
-    color: 'green',
+    fontSize: 16,
+    color: '#fff',
+  },
+  categoryContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 40,
+    height: 40,
+    backgroundColor: '#3C6E71',
+    borderRadius: 25,
+  },
+  categoryCircle: {
+    width: 30,
+    height: 30,
+    backgroundColor: '#fff',
+    borderRadius: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  categoryIcon: {
+    color: '#00A8A1',
+  },
+  transactionDate: {
+    marginTop: 10,
+    marginLeft: 10,
+    color: '#fff',
+  },
+  emptyText: {
+    color: '#fff',
+    textAlign: 'center',
+    fontSize: 18,
+    marginTop: 50,
+  },
+  showMoreButton: {
+    marginTop: 15,
+    alignItems: 'center',
+    padding: 10,
+  },
+  showMoreText: {
+    color: '#fff',
+    fontSize: 16,
+    textDecorationLine: 'underline',
   },
 });
-
-export default styles;

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, ActivityIndicator, Alert } from 'react-native';
-import { Camera, CameraType } from 'expo-camera';
+import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
@@ -8,6 +8,8 @@ import axios from 'axios';
 import { Picker } from '@react-native-picker/picker';
 import { useCategories } from '../../contexts/CategoriesContext';
 import CategoryPicker from '../../components/Categories/CategoryPicker';
+import plaidApi from '../../services/pluggy/apiAdapter';
+import { useNonPlaidTransactions } from '../../contexts/NonApiTransactionsContext';
 
 // Define the interface for receipt data
 interface ReceiptData {
@@ -18,36 +20,32 @@ interface ReceiptData {
 }
 
 const CameraScreen: React.FC = () => {
-  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
-  const [isCameraReady, setIsCameraReady] = useState(false);
+  const {fetchAllTransactions} = useNonPlaidTransactions();
+  const [permission, requestPermission] = useCameraPermissions();
   const [isProcessing, setIsProcessing] = useState(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [pickerVisible, setPickerVisible] = useState(false);
   const { categories } = useCategories();
+  const [facing] = useState<CameraType>('back');
 
-  const cameraRef = useRef<Camera | null>(null);
-
+  const cameraRef = useRef(null);
   // Django backend API URL - update with your actual server URL
-  const API_URL = 'http://192.168.0.108:8000/api/process-receipt/';
+  const API_URL = 'http://192.168.0.103:8000/api/process-receipt/';
 
-  useEffect(() => {
-    console.log("Updated Categories:", categories);
-    (async () => {
-      const { status } = await Camera.requestCameraPermissionsAsync();
-      setHasPermission(status === 'granted');
-      console.log('Camera permission status:', status);
-    })();
-  }, []);
-
-  const onCameraReady = () => {
-    setIsCameraReady(true);
-    console.log('Camera is ready');
-  };
+ if (!permission) return <View />;
+  if (!permission.granted) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.message}>We need your permission to show the camera</Text>
+        <Button title="Grant Permission" onPress={requestPermission} />
+      </View>
+    );
+  }
 
   const takePicture = async () => {
-    if (cameraRef.current && isCameraReady) {
+    if (cameraRef.current) {
       try {
         console.log('Taking picture...');
         const photo = await cameraRef.current.takePictureAsync({
@@ -118,35 +116,54 @@ const CameraScreen: React.FC = () => {
     setReceiptData(null);
   };
 
-  if (hasPermission === null) {
-    return <View style={styles.container}><Text>Requesting camera permission...</Text></View>;
-  }
-  
-  if (hasPermission === false) {
-    return <View style={styles.container}><Text>No access to camera. Please grant permission.</Text></View>;
-  }
-
   const handleInputChange = (key: keyof ReceiptData, value: string) => {
     setReceiptData((prevData) =>
       prevData ? { ...prevData, [key]: value } : prevData
     );
   };
 
+  const handleAddOCRTransaction = async () => {
+    if (receiptData) {
+      const dateParts = receiptData.date.split('/'); 
+      const formattedDate = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}T00:00:00.000Z`;
+      const transactionData = {
+        amount: parseFloat(receiptData.total_amount),
+        description: receiptData.business_name || 'Unknown',
+        category: selectedCategory ? selectedCategory.name : 'Unknown',
+        type: 'debit',
+        date: formattedDate,
+        source: 'ocr',
+      };
+
+      console.log('Transaction Data:', transactionData);
+  
+      try {
+        await plaidApi.post('/transactions/', transactionData); // Add transaction to backend
+        Alert.alert('Success', 'OCR Transaction added successfully!');
+        
+        // Fetch OCR transactions after adding a new one
+        await fetchAllTransactions('ocr'); 
+      } catch (error) {
+        console.error('Error adding OCR transaction:', error.response?.data || error.message);
+        Alert.alert('Error', 'Failed to add OCR transaction.');
+      }
+    }
+  };
+  
+
   return (
     <SafeAreaView style={styles.container}>
       {!capturedImage ? (
         <View style={styles.cameraContainer}>
-          <Camera
+          <CameraView
             ref={cameraRef}
             style={styles.camera}
-            type={CameraType.back}
-            onCameraReady={onCameraReady}
+            facing={facing}
           />
           <View style={styles.buttonContainer}>
             <TouchableOpacity
               style={styles.captureButton}
               onPress={takePicture}
-              disabled={!isCameraReady}
             >
               <MaterialIcons name="camera" size={36} color="white" />
             </TouchableOpacity>
@@ -222,6 +239,7 @@ const CameraScreen: React.FC = () => {
                   console.log("💰 Amount:", receiptData?.total_amount);
                   console.log("📅 Date:", receiptData?.date);
                   console.log("🏷️ Selected Category:", selectedCategory ? selectedCategory.name : "None");
+                  handleAddOCRTransaction();
                   resetCamera();
                 }}
               >

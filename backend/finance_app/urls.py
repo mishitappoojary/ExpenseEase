@@ -7,6 +7,7 @@ from . import views  # Make sure views.py exists and has homepage & api_root
 from backend.finance_app.views import CustomTokenObtainPairView, CustomTokenRefreshView
 from backend.plaid.transactions_views import LiabilitiesView
 from .views import TransactionListCreateView
+from .views import DeleteAllTransactionsView
 
 from .views import protected_endpoint
 
@@ -25,9 +26,8 @@ urlpatterns = [
     path('api/auth/login/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/auth/token/refresh/', CustomTokenRefreshView.as_view(), name='token_refresh'),
     path("liabilities/", LiabilitiesView.as_view(), name="liabilities"),
-
+    path('api/transactions/delete/', DeleteAllTransactionsView.as_view(), name='delete-all-transactions'),
     path('api/transactions/', TransactionListCreateView.as_view(), name='transactions-list-create'),
-
     path("protected-endpoint/", protected_endpoint, name="protected-endpoint"),
 
     # Authentication

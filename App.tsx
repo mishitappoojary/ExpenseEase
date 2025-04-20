@@ -19,6 +19,8 @@ import StackRoutes from './src/routes/stack.routes';
 import dark from './src/theme/dark';
 import light from './src/theme/light';
 
+import { NonPlaidProvider } from './src/contexts/NonApiTransactionsContext';  
+
 
 SplashScreen.preventAutoHideAsync();
 
@@ -109,6 +111,7 @@ export default function App() {
     <NavigationContainer onReady={onLayoutRootView}>
       <PlaidServiceProvider>
         <ThemeProvider theme={theme}>
+          <NonPlaidProvider>
           <AppContextProvider>
           <CategoriesProvider>
             <HooksProvider>
@@ -124,6 +127,7 @@ export default function App() {
             </HooksProvider>
             </CategoriesProvider>
           </AppContextProvider>
+          </NonPlaidProvider>
         </ThemeProvider>
       </PlaidServiceProvider>
     </NavigationContainer>

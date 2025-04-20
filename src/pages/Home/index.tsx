@@ -1,7 +1,11 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { Moment } from 'moment';
-import React, { useState, useEffect, useRef } from 'react';
+import { useNonPlaidTransactions } from '../../contexts/NonApiTransactionsContext';
+import { useCategories } from '../../contexts/CategoriesContext';
+import { categorizeMerchant } from '../../utils/category';
+import plaidApi from '../../services/pluggy/apiAdapter';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Alert,
   LayoutAnimation,
@@ -20,7 +24,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import SmsAndroid from 'react-native-get-sms-android';
-import { Camera } from 'expo-camera'; // Import camera functionality
+import { Camera } from 'expo-camera'; 
 import { useTheme } from 'styled-components/native';
 import FlexContainer from '../../components/FlexContainer';
 import Header from '../../components/Header';
@@ -47,6 +51,7 @@ const Home: React.FC = () => {
 
   // Use a default name instead of user data
   const userName = 'User';
+  const { categories } = useCategories();
   const [monthYearPickerOpened, setMonthYearPickerOpened] = useState(false);
   const [transactionListCapacity, setTransactionListCapacity] = useState(0);
   const [headerTitle, setHeaderTitle] = useState(formatMonthYearDate(NOW)); 
@@ -60,7 +65,8 @@ const Home: React.FC = () => {
   const [transactionModalVisible, setTransactionModalVisible] = useState(false);
   const latestTimestampRef = useRef(0);
   const [showAllTransactions, setShowAllTransactions] = useState(false);
-
+  const { fetchAllTransactions, manualTransactions, ocrTransactions, smsTransactions } = useNonPlaidTransactions();
+  const [balance, setBalance] = useState(50000);
 
   const theme = useTheme();
   const navigation = useNavigation();
@@ -84,8 +90,10 @@ const Home: React.FC = () => {
     fetchInvestments,
     fetchIncome,
     fetchLiabilities,
-    logout, // Make sure logout is still destructured from context
+    logout, 
   } = useAppContext();
+
+  const isCurrentMonth = checkCurrentMonth(date);
 
   useEffect(() => {
     fetchAccounts();
@@ -95,16 +103,69 @@ const Home: React.FC = () => {
     fetchLiabilities();
   }, [date]);
 
+
   useEffect(() => {
     if (Platform.OS === 'android') {
       requestSmsPermission();
     }
   }, []);
 
-  const balance = totalIncomes - totalExpenses;
+  const [fetchedManual, setFetchedManual] = useState(false);
+  const [fetchedOCR, setFetchedOCR] = useState(false);
+  const [fetchedSMS, setFetchedSMS] = useState(false);
+  const [allNonPlaidTransactions, setAllNonPlaidTransactions] = useState([]);
+
+  useEffect(() => {
+    const fetchsTransactions = async () => {
+      if (!fetchedManual) {
+        await fetchAllTransactions("manual");
+        setFetchedManual(true); // Set flag to prevent re-fetching
+      }
+      
+      if (!fetchedOCR) {
+        await fetchAllTransactions("ocr");
+        setFetchedOCR(true); // Set flag to prevent re-fetching
+      }
+  
+      if (!fetchedSMS) {
+        await fetchAllTransactions("sms");
+        setFetchedSMS(true); // Set flag to prevent re-fetching
+      }
+    };
+  
+    fetchsTransactions();
+  }, [fetchedManual, fetchedOCR, fetchedSMS]); 
+  
+  useEffect(() => {
+    if (fetchedManual && fetchedOCR && fetchedSMS) {
+      let newBalance = 50000;
+
+  // Combine the transactions from all sources (manual, ocr, sms) and sort them by date
+      const combinedTransactions = [
+        ...manualTransactions,
+        ...ocrTransactions,
+        ...smsTransactions,
+      ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+      setAllNonPlaidTransactions(combinedTransactions); 
+
+       combinedTransactions.forEach((transaction) => {
+        if (transaction.type === 'debit') {
+          newBalance -= transaction.amount;  // Subtract for debit
+        } else if (transaction.type === 'credit') {
+          newBalance += transaction.amount;  // Add for credit
+        }
+      });
+  
+      setBalance(newBalance);  // Update the balance
+    }
+  }, [fetchedManual, fetchedOCR, fetchedSMS, manualTransactions, ocrTransactions, smsTransactions]);  // Re-run when transactions are updated
+  
+
   const showTrendingIcon = hideValues ? false : balance !== 0;
 
   const animatedChangeDate = (value: Moment) => {
+    const isNextValueCurrentMonth = checkCurrentMonth(value);
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setDate(value);
   };
@@ -228,6 +289,7 @@ const Home: React.FC = () => {
   // Reload messages function to fetch SMS data
   const reloadMessages = () => {
     console.log("🔁 Reloading messages from timestamp:", latestTimestampRef.current);
+  
     SmsAndroid.list(
       JSON.stringify({
         box: 'inbox',
@@ -237,38 +299,66 @@ const Home: React.FC = () => {
       (fail) => {
         console.log('SMS fetch failed:', fail);
       },
-      (count, smsList) => {
+      async (count, smsList) => {
         const parsed = JSON.parse(smsList);
         const filtered = parsed.filter(
           (msg) =>
             msg.address &&
             (msg.address.toUpperCase().includes('SBIUPI') ||
-              msg.address.toUpperCase().includes('HDFCBK'))
+             msg.address.toUpperCase().includes('HDFCBK'))
         );
-
+  
         console.log(`📬 Filtered ${filtered.length} relevant messages`);
-
+  
         const uniqueRefs = new Set(transactions.map((tx) => tx.refNumber));
         const newMessages = [];
-
-        filtered.forEach((msg) => {
+  
+        for (const msg of filtered) {
           console.log('💬 SMS BODY:', msg.body, '| DATE:', msg.date);
           const cleaned = parseBankSMS(msg);
           if (cleaned && !uniqueRefs.has(cleaned.refNumber)) {
             uniqueRefs.add(cleaned.refNumber);
             newMessages.push(cleaned);
+  
+            // 🔁 Use your existing logic here
+            const categoryName = categorizeMerchant(cleaned.merchant);
+            const transactionData = {
+              amount: cleaned.amount,
+              description: cleaned.merchant,
+              category: categoryName,
+              type: cleaned.type,
+              date: new Date(cleaned.timestamp).toISOString(),
+              source: 'sms',
+              ref_number: cleaned.refNumber,
+              bank: cleaned.bank,
+            };
+  
+            try {
+              await plaidApi.post('/transactions/', transactionData);
+              console.log(`✅ Added SMS Transaction: ${cleaned.merchant}`);
+            } catch (error) {
+              console.error(
+                `❌ Failed to add SMS Transaction: ${cleaned.merchant}`,
+                error.response?.data || error.message
+              );
+            }
           }
-        });
-
+        }
+  
         if (newMessages.length > 0) {
           const newestTimestamp = Math.max(...filtered.map((msg) => msg.date));
           latestTimestampRef.current = Math.max(latestTimestampRef.current, newestTimestamp);
           setTransactions((prev) => [...newMessages, ...prev]);
+  
+          Alert.alert('Success', `${newMessages.length} new transactions pushed to backend!`);
+        } else {
+          Alert.alert('No New Transactions', 'No new SMS transactions found.');
         }
       }
     );
   };
-
+  
+  
   // Parse the SMS body to extract relevant data
   const parseBankSMS = (msg) => {
     const { body, address, date } = msg;
@@ -320,7 +410,7 @@ const Home: React.FC = () => {
 
   const fetchCategoryFromBackend = async (merchant) => {
     try {
-      const response = await fetch('http://192.168.0.108:8000/api/get-merchant-category/', {
+      const response = await fetch('http://192.168.0.103:8000/api/get-merchant-category/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -339,6 +429,38 @@ const Home: React.FC = () => {
       console.error("Error:", error);
     }
   };
+
+  const sendSMSTransactionsToBackend = async () => {
+    // Use the transactions state directly
+    const smsParsedList = transactions; // This is now the parsed list of transactions
+  
+    for (const sms of smsParsedList) {
+      const categoryName = categorizeMerchant(sms.merchant);
+      const transactionData = {
+        amount: sms.amount,
+        description: sms.merchant,
+        category: categoryName,
+        type: sms.type,
+        date: new Date(sms.timestamp).toISOString(),
+        source: 'sms',
+        ref_number: sms.refNumber,
+        bank: sms.bank,
+      };
+  
+      try {
+        // Send the SMS transaction to the backend
+        await plaidApi.post('/transactions/', transactionData);
+        console.log(`✅ Added SMS Transaction: ${sms.merchant}`);
+      } catch (error) {
+        console.error(
+          `❌ Failed to add SMS Transaction: ${sms.merchant}`,
+          error.response?.data || error.message
+        );
+      }
+    }
+  
+    Alert.alert('Success', `${smsParsedList.length} SMS transactions pushed to backend!`);
+  };
   
 
   const renderItem = ({ item }) => {
@@ -346,24 +468,30 @@ const Home: React.FC = () => {
     const transactionColor = isCredit ? '#4CAF50' : '#F44336';
     const transactionType = isCredit ? 'Credited' : 'Debited';
   
+    // Optional: Get the category and icon (assuming categories array is available)
+    const category = categories.find(cat => cat.name === item.category);
+    const categoryIcon = category ? category.icon : 'category';
+  
     return (
       <View style={styles.transactionItem}>
         <View style={[styles.leftIcon, { backgroundColor: transactionColor }]}>
           <MaterialIcons name={isCredit ? 'arrow-downward' : 'arrow-upward'} size={16} color="#fff" />
         </View>
- 
+  
         <View style={styles.transactionContent}>
           <Text style={styles.bankLine}>
-            <Text style={styles.bankName}>{item.bank}</Text> — {transactionType}
+            <Text style={styles.bankName}>{item.source.toUpperCase()}</Text> — {transactionType}
           </Text>
           <Text style={styles.transactionText}>
-            ₹ {item.amount} {isCredit ? 'from' : 'to'} {item.merchant}
+            ₹ {item.amount} {isCredit ? 'from' : 'to'} {item.merchantName}
           </Text>
-          <Text style={styles.transactionDate}>{new Date(item.timestamp).toLocaleString()}</Text>
+          <Text style={styles.transactionDate}>
+            {new Date(item.date).toLocaleDateString()}
+          </Text>
         </View>
-
+  
         <View style={styles.categoryCircle}>
-          <MaterialIcons name="fastfood" size={16} color="#fff" />
+          <MaterialIcons name={categoryIcon} size={16} color="#fff" />
         </View>
       </View>
     );
@@ -394,6 +522,7 @@ const Home: React.FC = () => {
               {
                 icon: 'undo',
                 onPress: () => animatedChangeDate(NOW),
+                hidden: isCurrentMonth,
               },
               {
                 icon: hideValues ? 'visibility-off' : 'visibility',
@@ -423,8 +552,8 @@ const Home: React.FC = () => {
 
          <View style={styles.balanceWithTrending}>
             <View style={styles.balanceWithTrending}>
-              <Text>
-                Balance: <Money value={balance} variant="default-bold" />
+            <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#fff', marginLeft: 10, paddingTop: 5 }}>
+                Balance: ₹ {balance.toFixed(2)}
               </Text>
               {showTrendingIcon && (
                 <MaterialIcons
@@ -445,14 +574,15 @@ const Home: React.FC = () => {
           </View>
 
           <View style={styles.SMScontainer}>
-            <Text style={styles.header}>Extracted Transactions</Text>
-            <TouchableOpacity onPress={reloadMessages}>
+          <Text style={styles.header}>Extracted Transactions</Text>
+          <TouchableOpacity onPress={reloadMessages}>
               <Text style={styles.reloadButton}>Reload</Text>
             </TouchableOpacity>
 
+
             <FlatList
-              data={visibleTransactions}
-              keyExtractor={(item) => item.refNumber}
+              data={allNonPlaidTransactions}
+              keyExtractor={(item) => item.id}
               renderItem={renderItem}
               ListFooterComponent={
                 transactions.length > 10 && (
@@ -522,6 +652,12 @@ const Home: React.FC = () => {
             <TouchableOpacity onPress={fetchLiabilities}><Text>Fetch Liabilities</Text></TouchableOpacity>
           </View>
         </Modal>
+        <MonthYearPicker
+        isOpen={monthYearPickerOpened}
+        selectedDate={date}
+        onChange={(value) => handleMonthYearPickerChange(value)}
+        onClose={() => setMonthYearPickerOpened(false)}
+      />
     </ScreenContainer>
   );
 };

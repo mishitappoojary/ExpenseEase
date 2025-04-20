@@ -69,11 +69,16 @@ class LinkedAccount(models.Model):
 class Transaction(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
-    description = models.CharField(max_length=255, default="Scanned Bill")
-    date = models.DateTimeField(auto_now_add=True)
-
+    description = models.CharField(max_length=255, default="unknown")
+    date = models.DateTimeField()
+    category = models.CharField(max_length=255, null=True, blank=True)
+    type = models.CharField(max_length=10, choices=[('debit', 'Debit'), ('credit', 'Credit')], default='debit')
+    ref_number = models.CharField(max_length=100, null=True, blank=True)  # Optional, for SMS transactions
+    bank = models.CharField(max_length=50, null=True, blank=True)  # Optional, for SMS transactions
+    source = models.CharField(max_length=50, choices=[('sms', 'SMS'), ('ocr', 'OCR'), ('manual', 'Manual')], default='manual')  # New source field
+    
     def __str__(self):
-        return f"{self.user.username} - {self.amount}"
+        return f"{self.user.username} - {self.amount} - {self.category} - {self.type} - {self.ref_number} - {self.bank} - {self.source}"
 
 # Financial Account Model (NEW)
 class FinancialAccount(models.Model):

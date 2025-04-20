@@ -64,5 +64,5 @@ class NotificationSerializer(serializers.ModelSerializer):
 class TransactionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Transaction
-        fields = ['id', 'user', 'amount', 'description', 'date']
-        read_only_fields = ['id', 'user', 'date']
+        fields = ['id', 'user', 'amount', 'description', 'date', 'category', 'type', 'ref_number', 'bank', 'source']
+        read_only_fields = ['id', 'user']

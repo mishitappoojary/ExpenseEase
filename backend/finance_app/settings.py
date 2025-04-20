@@ -97,7 +97,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:19006",  # Expo default port
     "http://10.0.2.2:8000",
     "http://10.0.2.2:19000", 
-    "http://192.168.0.108:8000",
+    "http://192.168.0.103:8000",
 ]
 
 # allauth settings

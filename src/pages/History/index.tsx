@@ -8,7 +8,7 @@ import { useAppContext } from '../../contexts/AppContext'; // ✅ Import AppCont
 import { StyledHeader, StyledFlatList, StyledDivider, TransactionItem, TransactionDetails } from './styles';
 
 const History: React.FC = () => {
-  const { allTransactions, fetchTransactions, fetchManualTransactions } = useAppContext(); // ✅ Get transactions & fetch function from context
+  const { allTransactions, fetchAllTransactions, fetchManualTransactions } = useAppContext(); // ✅ Get transactions & fetch function from context
   
   const [refreshing, setRefreshing] = useState(false);
   const theme = useTheme();
@@ -16,7 +16,7 @@ const History: React.FC = () => {
   // Handle pull-to-refresh
   const handleRefresh = async () => {
     setRefreshing(true);
-    await fetchTransactions(); // ✅ Refresh data from backend
+    await fetchAllTransactions(); // ✅ Refresh data from backend
     await fetchManualTransactions(); // ✅ Refresh manual transactions
     setRefreshing(false);
   };

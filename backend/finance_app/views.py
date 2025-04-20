@@ -11,7 +11,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework.permissions import AllowAny
-
+from rest_framework import serializers
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -284,16 +284,33 @@ def extract_total_amount(text_lines):
 
 
 
+import re
+import datetime
+
 def extract_date(text_lines):
     date_keywords = ["DATE", "CREATED", "DUE", "DATED"]
-    date = datetime.date.today().strftime("%d/%m/%Y")
+    date = datetime.date.today().strftime("%d/%m/%Y")  # Default to today's date
     
     for line in text_lines:
         line = line.strip()
         if any(keyword in line.upper() for keyword in date_keywords):
             match = re.search(r"(\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4})", line)
             if match:
-                date = match.group(0)
+                extracted_date = match.group(0)
+                
+                # Normalize extracted date to dd/mm/yyyy
+                # Replace separators with '/'
+                extracted_date = extracted_date.replace('.', '/').replace('-', '/')
+                
+                # Split by '/' to handle day, month, and year
+                day, month, year = extracted_date.split('/')
+                
+                # If year is two digits, adjust it to four digits (e.g., '25' -> '2025')
+                if len(year) == 2:
+                    year = '20' + year
+                
+                # Return the date in the desired format
+                date = f"{day}/{month}/{year}"
                 break
     
     return date
@@ -301,31 +318,39 @@ def extract_date(text_lines):
 @csrf_exempt  # ✅ Disable CSRF for this view
 @api_view(['POST'])
 def add_transaction(request):
-    serializer = TransactionSerializer(data=request.data)
+    transaction_data = request.data
+
+    # Check for duplicates only for SMS transactions
+    if transaction_data['source'] == 'sms':
+        if Transaction.objects.filter(ref_number=transaction_data['ref_number']).exists():
+            return Response({"detail": "Transaction with this ref_number already exists."}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Save the transaction (whether it's SMS, OCR, or Manual)
+    serializer = TransactionSerializer(data=transaction_data)
     if serializer.is_valid():
-        serializer.save()
-        return Response(serializer.data, status=201)
-    return Response(serializer.errors, status=400)
+        serializer.save(user=request.user)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    else:
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @method_decorator(csrf_exempt, name='dispatch')
 class TransactionListCreateView(generics.ListCreateAPIView):
+    queryset = Transaction.objects.all()
     serializer_class = TransactionSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        return Transaction.objects.filter(user=self.request.user).order_by('-date')
+    permission_classes = [IsAuthenticated]
 
     def perform_create(self, serializer):
-        from django.contrib.auth import get_user_model
-        User = get_user_model()
+        transaction_data = self.request.data
+        
+        # Check for duplicates only if source is SMS
+        if transaction_data['source'] == 'sms':
+            if Transaction.objects.filter(ref_number=transaction_data['ref_number']).exists():
+                existing = Transaction.objects.get(ref_number=transaction_data['ref_number'])
+                serializer = TransactionSerializer(existing)
+                return Response(serializer.data, status=status.HTTP_200_OK)
 
-        print(f"DEBUG: request.user = {self.request.user}")
-        print(f"DEBUG: type = {type(self.request.user)}")
-        print(f"DEBUG: user is authenticated? {self.request.user.is_authenticated}")
-        print(f"DEBUG: is instance of User? {isinstance(self.request.user, User)}")
-
+        # Save the transaction
         serializer.save(user=self.request.user)
-
 
 @csrf_exempt
 def get_merchant_category(request):
@@ -349,3 +374,8 @@ def get_merchant_category(request):
                 return JsonResponse({"error": str(e)}, status=500)
         return JsonResponse({"error": "Merchant data not provided"}, status=400)
     return JsonResponse({"error": "Invalid request method"}, status=405)
+
+class DeleteAllTransactionsView(APIView):
+    def delete(self, request):
+        Transaction.objects.all().delete()  # Deletes all transactions
+        return Response(status=status.HTTP_204_NO_CONTENT)

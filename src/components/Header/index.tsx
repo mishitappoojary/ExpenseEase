@@ -73,11 +73,14 @@ const Header: React.FC<HeaderProps> = ({
           />
           {showUserDropdown && (
             <DropdownMenu>
-              <DropdownItem>
-                <Text style={{ fontWeight: 'bold', fontSize: 16, color: theme.colors.dark }}>
-                  Hi, {userName} !!
-                </Text>
-              </DropdownItem>
+              {userName && (
+                <DropdownItem style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 16 }}>
+                  <Text style={{ fontSize: 18 }}>👋</Text>
+                  <Text style={{ fontWeight: 'bold', fontSize: 16, color: '#333' }}>
+                    Hi, {userName.charAt(0).toUpperCase() + userName.slice(1)} !!
+                  </Text>
+                </DropdownItem>
+              )}
               <DropdownItem>
                 <Text style={{ color: theme.colors.dark }}>BudBot</Text>
               </DropdownItem>

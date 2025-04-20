@@ -16,7 +16,7 @@ import { StackRouteParamList } from '../../routes/stack.routes';
 import { useAppContext } from '../../contexts/AppContext';
 
 //const API_BASE_URL = 'http://10.0.2.2:8000/api/auth';
-const API_BASE_URL = 'http://192.168.0.108:8000/api/auth';
+const API_BASE_URL = 'http://192.168.0.103:8000/api/auth';
 
 
 
