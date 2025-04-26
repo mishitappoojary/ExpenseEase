@@ -1,0 +1,40 @@
+{
+  "cli": {
+    "version": ">= 3.1.1",
+    "appVersionSource": "local"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "channel": "development",
+      "env": {
+        "NODE_OPTIONS": "--max-old-space-size=4096"
+      },
+      "ios": {
+        "simulator": true
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "channel": "staging",
+      "env": {
+        "NODE_OPTIONS": "--max-old-space-size=4096"
+      }
+    },
+    "production": {
+      "channel": "production",
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease"
+      },
+      "env": {
+        "NODE_OPTIONS": "--max-old-space-size=4096"
+      },
+      "node": "18.16.0"
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}

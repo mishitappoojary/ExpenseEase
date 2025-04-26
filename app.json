@@ -1,0 +1,52 @@
+{
+  "expo": {
+    "name": "ExpenseEase",
+    "slug": "expenseease",
+    "version": "1.1.8",
+    "owner": "chinmay910",
+    "orientation": "portrait",
+    "icon": "./src/assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./src/assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#284D63"
+    },
+    "updates": {
+      "fallbackToCacheTimeout": 0,
+      "url": "https://u.expo.dev/752d9743-e7cd-4faf-b1a0-e6f9a43a91d9"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "This app needs camera access to take photos."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./src/assets/adaptive-icon.png",
+        "backgroundColor": "#E5E7EB"
+      },
+      "package": "com.joaomlg.financeapp",
+      "permissions": ["CAMERA", "READ_SMS", "RECEIVE_SMS"]
+    },
+    "web": {
+      "favicon": "./src/assets/favicon.png"
+    },
+    "runtimeVersion": "1.0.0",
+    "extra": {
+      "eas": {
+        "projectId": "b921d485-55ff-4580-92e8-57417beb598b"
+      }
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera"
+        }
+      ]
+    ]
+  }
+}
