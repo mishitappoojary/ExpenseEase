@@ -87,7 +87,7 @@ const Header: React.FC<HeaderProps> = ({
               <DropdownItem>
                 <Text style={{ color: theme.colors.dark }}>Budget</Text>
               </DropdownItem>
-              <DropdownItem>
+              <DropdownItem onPress={() => navigation.navigate('graphScreen')}>
                 <Text style={{ color: theme.colors.dark }}>Graphs</Text>
               </DropdownItem>
               <DropdownItem onPress={() => navigation.navigate('goals')}>
@@ -95,6 +95,9 @@ const Header: React.FC<HeaderProps> = ({
               </DropdownItem>
               <DropdownItem onPress={() => navigation.navigate('AddCategories')}>
                 <Text style={{ color: theme.colors.dark }}>Add Categories</Text>
+              </DropdownItem>
+              <DropdownItem onPress={() => navigation.navigate('resolveTransactions')}>
+                <Text style={{ color: theme.colors.dark }}>Resolve Transactions</Text>
               </DropdownItem>
             </DropdownMenu>
           )}

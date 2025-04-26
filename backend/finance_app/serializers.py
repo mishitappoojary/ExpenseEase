@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import UserPreferences, UserStatistics, LinkedAccount, Notification, FinancialAccount, Transaction
+from .models import UserPreferences, UserStatistics, LinkedAccount, Notification, FinancialAccount, Transaction, Goal
 
 User = get_user_model()
 
@@ -66,3 +66,8 @@ class TransactionSerializer(serializers.ModelSerializer):
         model = Transaction
         fields = ['id', 'user', 'amount', 'description', 'date', 'category', 'type', 'ref_number', 'bank', 'source']
         read_only_fields = ['id', 'user']
+
+class GoalSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Goal
+        fields = ['id', 'title', 'icon', 'budget', 'progress']

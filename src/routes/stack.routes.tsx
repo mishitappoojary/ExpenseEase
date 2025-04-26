@@ -17,6 +17,8 @@ import AddTransactionScreen from '../pages/TransactionScreen/TransactionScreen';
 import CameraScreen from '../pages/CameraScreen/CameraScreen';
 import AddCategories from '../pages/Categories/AddCategories';
 import GoalsScreen from '../pages/Goals/GoalsScreen';
+import ResolveTransactions from '../pages/TransactionScreen/ResolveTransactions';
+import MainGraphScreen from '../pages/Graphs/MainGraphScreen';
 
 export type StackRouteParamList = {
   home: undefined;
@@ -31,6 +33,9 @@ export type StackRouteParamList = {
   CameraScreen: undefined;
   AddCategories: undefined;
   goals: undefined;
+  resolveTransactions: undefined;
+  graphScreen: undefined;
+
 };
 
 const Stack = createNativeStackNavigator<StackRouteParamList>();
@@ -66,6 +71,8 @@ const StackRoutes: React.FC = () => {
           <Stack.Screen name="CameraScreen" component={CameraScreen} />
           <Stack.Screen name="AddCategories" component={AddCategories} />
           <Stack.Screen name="goals" component={GoalsScreen} />
+          <Stack.Screen name="resolveTransactions" component={ResolveTransactions} />
+          <Stack.Screen name="graphScreen" component={MainGraphScreen} />
         </>
       ) : (
         <>

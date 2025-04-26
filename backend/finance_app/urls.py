@@ -7,7 +7,9 @@ from . import views  # Make sure views.py exists and has homepage & api_root
 from backend.finance_app.views import CustomTokenObtainPairView, CustomTokenRefreshView
 from backend.plaid.transactions_views import LiabilitiesView
 from .views import TransactionListCreateView
+from .views import TransactionRetrieveUpdateDestroyView
 from .views import DeleteAllTransactionsView
+from .views import GoalViewSet
 
 from .views import protected_endpoint
 
@@ -28,7 +30,13 @@ urlpatterns = [
     path("liabilities/", LiabilitiesView.as_view(), name="liabilities"),
     path('api/transactions/delete/', DeleteAllTransactionsView.as_view(), name='delete-all-transactions'),
     path('api/transactions/', TransactionListCreateView.as_view(), name='transactions-list-create'),
+    path('api/transactions/<int:pk>/', TransactionRetrieveUpdateDestroyView.as_view(), name='transaction-detail'),
     path("protected-endpoint/", protected_endpoint, name="protected-endpoint"),
+    path("api/transactions/unknown/", views.get_unknown_transactions, name="get_unknown_transactions"),
+    path("api/transactions/bulk_update_category/", views.bulk_update_category, name="bulk_update_category"),
+    path('api/goals/', views.GoalViewSet.as_view({'get': 'list', 'post': 'create'}), name='goal-list-create'),
+    path('api/goals/<int:pk>/', views.GoalViewSet.as_view({'get': 'retrieve', 'put': 'update', 'delete': 'destroy'}), name='goal-detail-update-delete'),
+    path('api/goals/<int:pk>/update-progress/', views.GoalViewSet.as_view({'post': 'update_progress'}), name='goal-update-progress'),
 
     # Authentication
     path('api/auth/', include('rest_framework.urls')),  # DRF built-in authentication views

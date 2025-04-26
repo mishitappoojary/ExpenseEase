@@ -229,9 +229,6 @@ const CameraScreen: React.FC = () => {
                 />
               </View>
               
-              {/* <TouchableOpacity style={styles.scanAgainButton} onPress={resetCamera}>
-                <Text style={styles.scanAgainText}>Scan Another Receipt</Text>
-              </TouchableOpacity> */}
               <TouchableOpacity 
                 style={styles.AddButton} 
                 onPress={() => {

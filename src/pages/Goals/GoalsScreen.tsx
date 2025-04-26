@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, TouchableOpacity, FlatList, Alert, Dimensions } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, Button, Alert, FlatList, TouchableOpacity } from 'react-native';
 import { ProgressBar } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import goalApi from '../../services/pluggy/apiAdapter';
 
 const GoalsScreen = () => {
   const [goals, setGoals] = useState([]);
@@ -14,48 +15,105 @@ const GoalsScreen = () => {
     'money', 'home', 'shopping-cart', 'restaurant-menu', 'fitness-center', 'spa', 'favorite', 'attach-money'
   ];
 
-  const addGoal = () => {
+  // Fetch goals on component mount
+  const loadGoals = async () => {
+    try {
+      const goalsData = await goalApi.get('goals/');
+      const goalsList = goalsData.data || goalsData;
+      setGoals(goalsList);
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Error', 'Failed to fetch goals.');
+    }
+  };
+
+  useEffect(() => {
+    loadGoals();
+  }, []);
+
+  // Add a new goal
+  const addGoal = async () => {
     if (!goalTitle || !goalBudget || !goalIcon) {
       Alert.alert('Error', 'Please fill in all fields.');
       return;
     }
 
     const newGoal = {
-      id: Math.random().toString(),
       title: goalTitle,
       icon: goalIcon,
       budget: parseFloat(goalBudget),
       progress: 0,
     };
 
-    setGoals([...goals, newGoal]);
-    setGoalTitle('');
-    setGoalIcon('star');
-    setGoalBudget('');
+    try {
+      const createdGoal = await goalApi.post('goals/', newGoal);
+      setGoals((prevGoals) => [...prevGoals, createdGoal.data]);
+      setGoalTitle('');
+      setGoalIcon('star');
+      setGoalBudget('');
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Error', 'Failed to create goal.');
+    }
   };
 
-  const updateProgress = (goalId) => {
-    const updatedGoals = goals.map((goal) => {
-      if (goal.id === goalId) {
-        const updatedProgress = Math.min(goal.progress + 100, goal.budget);
-        return { ...goal, progress: updatedProgress };
-      }
-      return goal;
-    });
-    setGoals(updatedGoals);
+  // Update goal progress
+  const updateProgress = async (goalId) => {
+    const progressIncrement = 1000;
+
+    try {
+      const response = await goalApi.post(`goals/${goalId}/update-progress/`, { progress: progressIncrement });
+      const updatedGoal = response.data;
+
+      const updatedGoals = goals.map((goal) =>
+        goal.id === goalId ? updatedGoal : goal
+      );
+      loadGoals();
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Error', 'Failed to update goal progress.');
+    }
+  };
+
+  // Delete a goal
+  const deleteGoal = async (goalId) => {
+    try {
+      await goalApi.deleteGoal(goalId);
+      const updatedGoals = goals.filter((goal) => goal.id !== goalId);
+      setGoals(updatedGoals);
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Error', 'Failed to delete goal.');
+    }
   };
 
   const renderGoalCard = ({ item }) => (
     <View style={styles.goalCard}>
       <View style={styles.goalHeader}>
-        <Icon name={item.icon} size={30} color="#6200ea" />
+        <View style={styles.iconBox}>
+          <Icon name={item.icon} size={30} color="#FFFFFF" />
+        </View>
         <Text style={styles.goalTitle}>{item.title}</Text>
       </View>
       <Text style={styles.goalProgressText}>
         Progress: {item.progress} / {item.budget}
       </Text>
-      <ProgressBar progress={item.progress / item.budget} color="#6200ea" style={styles.progressBar} />
-      <Button title="Add ₹100" onPress={() => updateProgress(item.id)} />
+      <ProgressBar progress={item.budget > 0 ? item.progress / item.budget : 0} color="#6200ea" style={styles.progressBar} />
+      <View style={styles.buttonRow}>
+      <TouchableOpacity 
+        style={styles.button} 
+        onPress={() => updateProgress(item.id)}
+      >
+        <Text style={[styles.buttonText, { backgroundColor: '#00A8A1' }]}>+ ₹1000</Text>
+      </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={styles.button} 
+          onPress={() => deleteGoal(item.id)}
+        >
+          <Text style={[styles.buttonText, { backgroundColor: '#D32F2F' }]}>Delete</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 
@@ -68,6 +126,7 @@ const GoalsScreen = () => {
         value={goalTitle}
         onChangeText={setGoalTitle}
       />
+      <View style={styles.iconButtonContainer}>
       <Text style={styles.iconLabel}>Select an Icon:</Text>
       <TouchableOpacity
         style={styles.iconButton}
@@ -77,8 +136,10 @@ const GoalsScreen = () => {
           setGoalIcon(availableIcons[nextIndex]);
         }}
       >
-        <Icon name={goalIcon} size={50} color="#6200ea" />
+        <Icon name={goalIcon} size={50} color="#fff" />
       </TouchableOpacity>
+    </View>
+
       <TextInput
         style={styles.input}
         placeholder="Budget Required"
@@ -86,80 +147,141 @@ const GoalsScreen = () => {
         value={goalBudget}
         onChangeText={setGoalBudget}
       />
-      <Button title="Add Goal" onPress={addGoal} />
+      <TouchableOpacity style={styles.addGoalButton} onPress={addGoal}>
+        <Text style={styles.addGoalButtonText}>Add Goal</Text>
+      </TouchableOpacity>
+
       <FlatList
         data={goals}
         renderItem={renderGoalCard}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.id ? item.id.toString() : Math.random().toString()}
+        contentContainerStyle={styles.flatListContent}
       />
     </View>
   );
 };
 
-const styles = StyleSheet.create({
+const styles = {
   container: {
     flex: 1,
-    padding: 20,
-    justifyContent: 'flex-start',
-    alignItems: 'center',
-    backgroundColor: '#f7f7f7',
+    padding: 16,
+    backgroundColor: '#284D63',
   },
   header: {
     fontSize: 24,
     fontWeight: 'bold',
+    textAlign: 'center',
     marginBottom: 20,
+    marginTop: 20,
+    color: '#FFFFFF',
   },
   input: {
-    width: '100%',
-    padding: 10,
-    marginVertical: 10,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 5,
     backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 15,
+    fontSize: 15,
+    color: '#000',
   },
   iconLabel: {
     fontSize: 16,
-    marginVertical: 10,
+    marginTop: 8,
+    color: '#fff',
+    textAlign: 'center',
   },
   iconButton: {
-    padding: 10,
+    marginTop: 10,
+    marginBottom: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#284D63',
+    borderRadius: 8,
     borderWidth: 1,
-    borderRadius: 5,
-    borderColor: '#6200ea',
-    backgroundColor: '#fff',
-    marginVertical: 10,
+    borderColor: 'white',
+    width: 80,
+    height: 80,
+    marginHorizontal: 125,
+  },
+  iconBox: {
+    backgroundColor: '#00A8A1',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
   },
   goalCard: {
-    backgroundColor: '#fff',
-    padding: 20,
-    marginVertical: 10,
-    borderRadius: 10,
-    width: Dimensions.get('window').width - 40,
+    marginTop: 15,
+    marginBottom: 5,
+    padding: 9,
+    borderWidth: 1,
+    borderColor: '#00A8A1',
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 2,
-    elevation: 5,
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   goalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 5,
   },
   goalTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    marginLeft: 10,
+    marginLeft: 8,
+    color: '#284D63',
+    fontWeight: '600',
   },
   goalProgressText: {
     fontSize: 14,
-    marginBottom: 10,
+    marginTop: 5,
+    color: '#3C6E71',
   },
   progressBar: {
-    width: '100%',
-    marginBottom: 10,
+    height: 8,
+    marginTop: 8,
+    backgroundColor: '#e0e0e0',
+    borderRadius: 4,
   },
-});
+  buttonRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 12,
+  },
+  flatListContent: {
+    paddingBottom: 20,
+  },
+  addGoalButton: {
+    backgroundColor: '#00A8A1',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 0,
+  },
+  addGoalButtonText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: 'bold',
+  },
+
+  button: {
+    paddingVertical: 8, 
+    paddingHorizontal: 50, 
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',  
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 14,
+    textAlign: 'center',
+    padding: 8,
+  },
+};
 
 export default GoalsScreen;

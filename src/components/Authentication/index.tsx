@@ -46,7 +46,6 @@ const AuthenticationProvider: React.FC<AuthenticateProps> = ({ children }) => {
     <View>{children}</View> // Wrapped in View
   ) : (
     <Container>
-      {/* <SplashImage source={require('../../assets/splash.png')} /> */}
       <SplashImage source={require('../../assets/splash2.jpg')} />
       <AuthButton onPress={authenticationRoutine}>
         <Text style={{ fontSize: 20, fontWeight: 'bold' }}>

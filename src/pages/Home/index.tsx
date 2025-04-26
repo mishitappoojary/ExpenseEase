@@ -1,6 +1,7 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { Moment } from 'moment';
+import LinearGradient from 'react-native-linear-gradient';
 import { useNonPlaidTransactions } from '../../contexts/NonApiTransactionsContext';
 import { useCategories } from '../../contexts/CategoriesContext';
 import { categorizeMerchant } from '../../utils/category';
@@ -15,6 +16,7 @@ import {
   ScrollView,
   UIManager,
   Button,
+  Image,
   FlatList,
   StyleSheet,
   PermissionsAndroid,
@@ -52,6 +54,8 @@ const Home: React.FC = () => {
   // Use a default name instead of user data
   const userName = 'User';
   const { categories } = useCategories();
+  const [selectedTransaction, setSelectedTransaction] = useState(null);
+  const [modalVisible, setModalVisible] = useState(false);
   const [monthYearPickerOpened, setMonthYearPickerOpened] = useState(false);
   const [transactionListCapacity, setTransactionListCapacity] = useState(0);
   const [headerTitle, setHeaderTitle] = useState(formatMonthYearDate(NOW)); 
@@ -461,16 +465,53 @@ const Home: React.FC = () => {
   
     Alert.alert('Success', `${smsParsedList.length} SMS transactions pushed to backend!`);
   };
+
+  const handleCategoryChange = async (categoryName) => {
+    if (!selectedTransaction) return;
   
+    try {
+      // Find the selected category
+      const selectedCategory = categories.find((cat) => cat.name === categoryName);
+      const selectedIcon = selectedCategory ? selectedCategory.icon : 'category';
+  
+      // Update the category and icon of the selected transaction
+      setAllNonPlaidTransactions((prev) =>
+        prev.map((tx) =>
+          tx.id === selectedTransaction.id
+            ? {
+                ...tx,
+                category: categoryName, // Update category
+                icon: selectedIcon,     // Update icon
+                _updated: Date.now(),   // Optional: force rerender if memoized
+              }
+            : tx
+        )
+      );
+  
+      // Send PATCH request to update the backend
+      await plaidApi.patch(`/transactions/${selectedTransaction.id}/`, {
+        category: categoryName,
+      });
+  
+      console.log('✅ Category updated to:', categoryName);
+      reloadMessages();
+  
+    } catch (error) {
+      console.error('❌ Failed to update category:', error.response?.data || error.message);
+    } finally {
+      setModalVisible(false);
+      setSelectedTransaction(null); // Clear selected transaction
+    }
+  };
 
   const renderItem = ({ item }) => {
     const isCredit = item.type === 'credit';
     const transactionColor = isCredit ? '#4CAF50' : '#F44336';
     const transactionType = isCredit ? 'Credited' : 'Debited';
   
-    // Optional: Get the category and icon (assuming categories array is available)
-    const category = categories.find(cat => cat.name === item.category);
-    const categoryIcon = category ? category.icon : 'category';
+    // Get the category and icon based on the selected category
+    const category = categories.find(cat => cat.name.toLowerCase() === item.category?.toLowerCase());
+    const categoryIcon = item.icon || (category ? category.icon : 'category');
   
     return (
       <View style={styles.transactionItem}>
@@ -480,7 +521,7 @@ const Home: React.FC = () => {
   
         <View style={styles.transactionContent}>
           <Text style={styles.bankLine}>
-            <Text style={styles.bankName}>{item.source.toUpperCase()}</Text> — {transactionType}
+            <Text style={styles.bankName}>{transactionType}</Text>
           </Text>
           <Text style={styles.transactionText}>
             ₹ {item.amount} {isCredit ? 'from' : 'to'} {item.merchantName}
@@ -490,9 +531,15 @@ const Home: React.FC = () => {
           </Text>
         </View>
   
-        <View style={styles.categoryCircle}>
+        <TouchableOpacity
+          onPress={() => {
+            setSelectedTransaction(item);
+            setModalVisible(true);
+          }}
+          style={styles.categoryCircle}
+        >
           <MaterialIcons name={categoryIcon} size={16} color="#fff" />
-        </View>
+        </TouchableOpacity>
       </View>
     );
   };
@@ -535,20 +582,82 @@ const Home: React.FC = () => {
             ]}
           />
 
-          <View style={styles.summaryContainer}>
-            <Text style={styles.summaryTitle}>Financial Overview</Text>
-            <FlexContainer style={styles.overviewContainer}>
-              <Text>
-                Total Balance: <Money value={totalBalance} variant="default-bold" />
-              </Text>
-              <Text>
-                Total Investment: <Money value={totalInvestment} variant="default-bold" />
-              </Text>
-              <Text>
-                Total Invoice: <Money value={totalInvoice} variant="default-bold" />
-              </Text>
-            </FlexContainer>
+          {/* <View style={styles.summaryContainer}>
+            <LinearGradient
+              colors={['#28a745', '#284D63']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.card}
+            >
+              <View style={styles.cardHeader}>
+                <Image
+            source={{ uri: 'https://brandlogos.net/wp-content/uploads/2014/10/visa-logo-300x300.png' }}
+            style={styles.cardLogo}
+          />
+          <Image
+            source={{ uri: 'https://brandslogos.com/wp-content/uploads/images/large/chip-logo.png' }}
+            style={styles.chip}
+          />
           </View>
+
+              <View style={styles.cardContent}>
+                <Text style={styles.itemTitle}>Total Balance:</Text>
+                <Money value={totalBalance} variant="default-bold" style={styles.moneyText} />
+              </View>
+
+              <View style={styles.cardContent}>
+                <Text style={styles.itemTitle}>Total Investment:</Text>
+                <Money value={totalInvestment} variant="default-bold" style={styles.moneyText} />
+              </View>
+
+              <View style={styles.cardContent}>
+                <Text style={styles.itemTitle}>Total Invoice:</Text>
+                <Money value={totalInvoice} variant="default-bold" style={styles.moneyText} />
+              </View>
+            </LinearGradient>
+          </View> */}
+
+<View style={styles.summaryContainer}>
+            <LinearGradient
+              colors={['#3C6E71', '#284D63']} 
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.card}
+            >
+              <View style={styles.cardHeader}>
+                <Image
+            source={{ uri: 'https://companieslogo.com/img/orig/V.D-e36aebe0.png?t=1720244494' }}
+            style={styles.cardLogo}
+          />
+          <Image
+            source={{ uri: 'https://brandslogos.com/wp-content/uploads/images/large/chip-logo.png' }}
+            style={styles.chip}
+          />
+          </View>
+
+              <View style={styles.cardContent}>
+                <Text style={styles.itemTitle}>Total Balance:</Text>
+                <Text style={styles.moneyText}>
+                ₹ {balance.toFixed(2)}
+                </Text>
+              </View>
+
+              <View style={styles.cardContent}>
+                <Text style={styles.itemTitle}>Total Investment:</Text>
+                <Money value={totalInvestment} variant="default-bold" style={styles.moneyText} />
+              </View>
+
+              <View style={styles.cardContent}>
+                <Text style={styles.itemTitle}>Total Invoice:</Text>
+                <Text style={styles.moneyText}>
+                ₹ {balance.toFixed(2)}
+                </Text>
+              </View>
+            </LinearGradient>
+          </View>
+
+
+
 
          <View style={styles.balanceWithTrending}>
             <View style={styles.balanceWithTrending}>
@@ -576,7 +685,7 @@ const Home: React.FC = () => {
           <View style={styles.SMScontainer}>
           <Text style={styles.header}>Extracted Transactions</Text>
           <TouchableOpacity onPress={reloadMessages}>
-              <Text style={styles.reloadButton}>Reload</Text>
+              <Text style={styles.reloadButton}>Reload ↺ </Text>
             </TouchableOpacity>
 
 
@@ -652,6 +761,48 @@ const Home: React.FC = () => {
             <TouchableOpacity onPress={fetchLiabilities}><Text>Fetch Liabilities</Text></TouchableOpacity>
           </View>
         </Modal>
+
+        <Modal
+          visible={plaidModalVisible}
+          transparent={true}
+          animationType="slide"
+          onRequestClose={() => setPlaidModalVisible(false)}
+        >
+          <View style={styles.modalContainer}>
+            <TouchableOpacity onPress={() => setPlaidModalVisible(false)}>
+              <Text>Close</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleFetchTransactions}><Text>Fetch Transactions</Text></TouchableOpacity>
+            <TouchableOpacity onPress={fetchInvestments}><Text>Fetch Investments</Text></TouchableOpacity>
+            <TouchableOpacity onPress={fetchIncome}><Text>Fetch Income</Text></TouchableOpacity>
+            <TouchableOpacity onPress={fetchLiabilities}><Text>Fetch Liabilities</Text></TouchableOpacity>
+          </View>
+        </Modal>
+
+        <Modal visible={modalVisible} animationType="slide" transparent>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Select Category</Text>
+              <FlatList
+                data={categories}
+                keyExtractor={(item) => item.id.toString()}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={styles.categoryOption}
+                    onPress={() => handleCategoryChange(item.name)}  // Update category
+                  >
+                    <MaterialIcons name={item.icon} size={20} color="#333" />
+                    <Text style={styles.categoryText}>{item.name}</Text>
+                  </TouchableOpacity>
+                )}
+              />
+              <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.cancelButton}>
+                <Text style={styles.cancelText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
         <MonthYearPicker
         isOpen={monthYearPickerOpened}
         selectedDate={date}

@@ -66,6 +66,16 @@ class LinkedAccount(models.Model):
     def __str__(self):
         return f"{self.user.username} - {self.provider}"
     
+class Goal(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    title = models.CharField(max_length=255)
+    icon = models.CharField(max_length=50)
+    budget = models.DecimalField(max_digits=10, decimal_places=2)
+    progress = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+
+    def __str__(self):
+        return f"{self.title} - {self.budget} - Progress: {self.progress}"
+        
 class Transaction(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
@@ -78,7 +88,8 @@ class Transaction(models.Model):
     source = models.CharField(max_length=50, choices=[('sms', 'SMS'), ('ocr', 'OCR'), ('manual', 'Manual')], default='manual')  # New source field
     
     def __str__(self):
-        return f"{self.user.username} - {self.amount} - {self.category} - {self.type} - {self.ref_number} - {self.bank} - {self.source}"
+        return f"{self.user.username} - {self.amount} - {self.description} - {self.category} - {self.type} - {self.ref_number} - {self.bank} - {self.source}"
+
 
 # Financial Account Model (NEW)
 class FinancialAccount(models.Model):

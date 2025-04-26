@@ -144,6 +144,14 @@ const plaidApi = {
     api.post(`/plaid/items/${itemId}/refresh/`),
   getItemStatus: async (itemId) =>
     api.get(`/plaid/items/${itemId}/status/`).then((res) => res.data),
+
+    /** 🧹 Fetch all transactions with 'unknown' category */
+    fetchUnknownTransactions: async () =>
+      api.get('/transactions/unknown/').then((res) => res.data),
+  
+    /** 🔁 Bulk update category of transactions by description */
+    bulkUpdateCategory: async (description: string, category: string) =>
+      api.patch('/transactions/bulk_update_category/', { description, category }),  
 };
 
 // ✅ Authentication API
@@ -194,6 +202,27 @@ const accountsApi = {
       .then((res) => res.data),
 };
 
+const goalApi = {
+  createGoal: async (newGoal) => {
+    const response = await api.post('/goals/', newGoal);
+    return response.data;
+  },
+
+  getGoals: async () => api.get('/goals/').then((res) => res.data),
+
+  updateGoalProgress: async (goalId, progress) => {
+    const response = await api.post(`/goals/${goalId}/update-progress/`, { progress });
+    return response.data;
+  },
+
+  deleteGoal: async (goalId) => {
+    const response = await api.delete(`/goals/${goalId}/`);
+    return response.data;
+  },
+
+};
+
+
 // ✅ Export API handlers
-export { plaidApi, authApi, accountsApi };
+export { plaidApi, authApi, accountsApi, goalApi };
 export default api;

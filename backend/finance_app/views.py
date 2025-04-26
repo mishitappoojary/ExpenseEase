@@ -15,9 +15,13 @@ from rest_framework import serializers
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework import viewsets
+from rest_framework.decorators import action
 
 from .serializers import TransactionSerializer
 from .models import Transaction
+from .models import Goal
+from .serializers import GoalSerializer
 
 
 from django.contrib.auth.models import update_last_login
@@ -39,8 +43,8 @@ from paddleocr import PaddleOCR
 
 import requests
 
-API_URL = "https://trove.headline.com/api/v1/transactions/enrich"
-API_KEY = "your_api_key"
+#API_URL = "https://trove.headline.com/api/v1/transactions/enrich"
+#API_KEY = "your_api_key"
 
 
 def homepage(request):
@@ -55,7 +59,7 @@ def homepage(request):
                 'admin': '/admin/',
                 'plaid_api': '/api/plaid/',
                 'accounts_api': '/api/accounts/',
-                'auth_api': '/api/auth/'
+                'auth_api': '/api/auth/',
             }
         })
     return render(request, 'homepage.html')
@@ -72,7 +76,7 @@ def api_root(request):
             'admin': '/admin/',
             'plaid_api': '/api/plaid/',
             'accounts_api': '/api/accounts/',
-            'auth_api': '/api/auth/'
+            'auth_api': '/api/auth/',
         }
     })
 
@@ -352,6 +356,86 @@ class TransactionListCreateView(generics.ListCreateAPIView):
         # Save the transaction
         serializer.save(user=self.request.user)
 
+class TransactionRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Transaction.objects.all()
+    serializer_class = TransactionSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return self.queryset.filter(user=self.request.user)
+
+@api_view(['GET'])
+#@permission_classes([IsAuthenticated])
+def get_unknown_transactions(request):
+    user = request.user
+    unknowns = Transaction.objects.filter(user=user, category__iexact='unknown')
+    serializer = TransactionSerializer(unknowns, many=True)
+    return Response(serializer.data)
+
+@api_view(['PATCH'])
+def bulk_update_category(request):
+    user = request.user
+    description = request.data.get('description', '').lower()
+    new_category = request.data.get('category')
+
+    if not description or not new_category:
+        return Response({'error': 'Invalid data'}, status=400)
+
+    updated = Transaction.objects.filter(user=user, description__iexact=description)
+    
+    if not updated.exists():
+        return Response({'message': 'No transactions found to update.'}, status=404)
+
+    updated.update(category=new_category)
+    return Response({'message': f'Updated {updated.count()} transactions.'})
+
+class GoalViewSet(viewsets.ViewSet):
+    permission_classes = [IsAuthenticated] 
+    # List all goals
+    def list(self, request):
+        goals = Goal.objects.filter(user=request.user)
+        serializer = GoalSerializer(goals, many=True)
+        return Response(serializer.data)
+
+    # Create a new goal
+    def create(self, request):
+        print(f"Request Data: {request.data}") 
+        serializer = GoalSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(user=request.user)
+            return Response(serializer.data, status=201)
+        else:
+            print(f"Serializer Errors: {serializer.errors}")
+            return Response(serializer.errors, status=400)
+
+    # Retrieve a specific goal
+    def retrieve(self, request, pk=None):
+        goal = Goal.objects.get(pk=pk)
+        serializer = GoalSerializer(goal)
+        return Response(serializer.data)
+
+    # Update a specific goal
+    def update(self, request, pk=None):
+        goal = Goal.objects.get(pk=pk)
+        serializer = GoalSerializer(goal, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=400)
+
+    # Delete a specific goal
+    def destroy(self, request, pk=None):
+        goal = Goal.objects.get(pk=pk)
+        goal.delete()
+        return Response(status=204)
+
+    # Update goal progress
+    def update_progress(self, request, pk=None):
+        goal = Goal.objects.get(pk=pk)
+        goal.progress += 1000  # Increment by 100, or any logic you wish
+        goal.save()
+        return Response({'status': 'progress updated'})
+             
 @csrf_exempt
 def get_merchant_category(request):
     if request.method == "POST":

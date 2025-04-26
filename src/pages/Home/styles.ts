@@ -13,16 +13,6 @@ export const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 8,
   },
-  summaryContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginTop: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 3,
-  },
   modalContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -174,9 +164,9 @@ export const styles = StyleSheet.create({
   },
   
   categoryCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 36,
+    height: 36,
+    borderRadius: 50,
     backgroundColor: '#40BEBE',
     justifyContent: 'center',
     alignItems: 'center',
@@ -190,15 +180,114 @@ export const styles = StyleSheet.create({
   header: {
     fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 10,
+    marginBottom: 5,
+    marginTop: 10,
+    color: '#00A8A1',
   },
   
   reloadButton: {
-    fontSize: 14,
-    color: '#40BEBE',
+    fontSize: 16,
+    color: '#f5f5f5',
     fontWeight: 'bold',
     marginBottom: 12,
   },
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: '80%',
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 20,
+    maxHeight: '60%',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  categoryOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+  },
+  categoryText: {
+    marginLeft: 10,
+    fontSize: 16,
+  },
+  cancelButton: {
+    marginTop: 10,
+    alignSelf: 'center',
+  },
+  cancelText: {
+    color: '#F44336',
+    fontSize: 16,
+  },
+  summaryContainer: {
+    padding: 5,
+    backgroundColor: '#f9f9f9',
+    borderRadius: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
+    marginTop: 20,
+    marginBottom:10,
+  },
+  card: {
+    padding: 20,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 10,
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  cardContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  itemTitle: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#fff',
+    opacity: 0.8,
+  },
+  moneyText: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#fff',
+    textAlign: 'right',
+    paddingLeft: 10,
+  },
+
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  cardLogo: {
+    width: 50,
+    height: 50,
+    resizeMode: 'contain',
+  },
+  chip: {
+    width: 50,
+    height: 50,
+    resizeMode: 'contain',
+  }
+  
   
   
 });
