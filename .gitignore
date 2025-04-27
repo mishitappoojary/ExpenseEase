@@ -9,6 +9,7 @@ npm-debug.*
 *.mobileprovision
 *.orig.*
 web-build/
+capitalguard-451015-b1cc1afe3eb1.json
 .env
 
 # macOS
