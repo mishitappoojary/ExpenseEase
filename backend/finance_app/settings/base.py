@@ -56,7 +56,12 @@ PLAID_SECRET="bec2b4517049ec2a616759317f63cc"
 PLAID_ENV="sandbox"
 
 DEBUG=True
-CELERY_BROKER_URL="redis://localhost:6379/0"
+# CELERY_BROKER_URL = 'redis://localhost:6379/0'  # or the appropriate Redis URL
+# CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+# CELERY_ACCEPT_CONTENT = ['json']
+# CELERY_TASK_SERIALIZER = 'json'
+# CELERY_RESULT_SERIALIZER = 'json'
+
 APP_URL="http://localhost:8000",
 
 MIDDLEWARE = [

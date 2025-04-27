@@ -17,15 +17,17 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import viewsets
 from rest_framework.decorators import action
+from decimal import Decimal
 
 from .serializers import TransactionSerializer
-from .models import Transaction
+from .models import Transaction, BudgetCategory, Budget, DynamicBudget
 from .models import Goal
-from .serializers import GoalSerializer
+from .serializers import GoalSerializer, BudgetCategorySerializer, BudgetSerializer, BudgetSummarySerializer, SuggestedBudgetSerializer, DynamicBudgetSerializer
 
 from google.cloud import dialogflow_v2 as dialogflow
 import uuid
-
+from datetime import timedelta
+from django.utils import timezone
 
 from django.contrib.auth.models import update_last_login
 from django.db.models import Sum
@@ -474,7 +476,134 @@ class DeleteAllTransactionsView(APIView):
         Transaction.objects.all().delete()  # Deletes all transactions
         return Response(status=status.HTTP_204_NO_CONTENT)
     
+
+# Dynamic Budgeting
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def generate_dynamic_budget(request):
+    """
+    Auto-create a budget based on user's past spending.
+    """
+    user = request.user
+    period = request.data.get("period", "monthly")  # Default to monthly
+
+    # Analyze past 90 days transactions
+    past_transactions = Transaction.objects.filter(
+        user=user, 
+        date__gte=timezone.now() - timedelta(days=90)
+    )
+
+    if not past_transactions.exists():
+        return Response({"error": "Not enough transaction data"}, status=400)
+
+    spending_by_category = (
+        past_transactions.values("category")
+        .annotate(total_spent=Sum("amount"))
+        .order_by("-total_spent")
+    )
+
+    # Clear old dynamic budgets
+    DynamicBudget.objects.filter(user=user, period=period).delete()
+
+    budgets_created = []
+    for category_data in spending_by_category:
+        category = category_data["category"]
+        spent = abs(category_data["total_spent"])
+
+        if spent < 10:  # Ignore categories with very low spending
+            continue
+
+        # Example: budget 90% of past average spending for that category
+        average_spent = spent / 3  # 3 months
+        budget_amount = average_spent * Decimal(0.9 if period == "monthly" else 0.2)
+
+        dynamic_budget = DynamicBudget.objects.create(
+            user=user,
+            period=period,
+            category=category,
+            amount=budget_amount
+        )
+        budgets_created.append(dynamic_budget)
+
+    serializer = DynamicBudgetSerializer(budgets_created, many=True)
+    return Response(serializer.data, status=201)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_dynamic_budgets(request):
+    user = request.user
+    period = request.query_params.get("period", "monthly")
+    budgets = DynamicBudget.objects.filter(user=user, period=period)
+    serializer = DynamicBudgetSerializer(budgets, many=True)
+    return Response(serializer.data)
+
+
+# Budgeting feature
+class BudgetCategoryViewSet(viewsets.ModelViewSet):
+    serializer_class = BudgetCategorySerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return BudgetCategory.objects.filter(user=self.request.user)
+
+class BudgetViewSet(viewsets.ModelViewSet):
+    serializer_class = BudgetSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Budget.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        budget = serializer.save(user=self.request.user)
+        budget.adjust_budget()
+
+class BudgetSummaryViewSet(viewsets.ViewSet):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def list(self, request):
+        user = request.user
+        
+        # Fetch all budgets for the user, optimizing with select_related for the category
+        budgets = Budget.objects.filter(user=user).select_related('category')
+
+        # Serialize the budgets using the BudgetSummarySerializer
+        summary_data = BudgetSummarySerializer(budgets, many=True)
+
+        # Return the serialized data in the response
+        return Response(summary_data.data)
     
+class BudgetSuggestionsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        # Last 3 months of transactions
+        three_months_ago = timezone.now() - timedelta(days=90)
+        transactions = Transaction.objects.filter(user=user, date__gte=three_months_ago)
+
+        category_totals = {}
+        category_counts = {}
+
+        for txn in transactions:
+            category = txn.category.name if txn.category else "Uncategorized"
+            category_totals[category] = category_totals.get(category, 0) + txn.amount
+            category_counts[category] = category_counts.get(category, 0) + 1
+
+        suggestions = []
+        for category, total_amount in category_totals.items():
+            count = category_counts[category]
+            avg_per_month = (total_amount / 3)  # 3 months
+            suggestions.append({
+                "category": category,
+                "suggested_amount": round(avg_per_month * 1.1, 2)  # Add 10% buffer
+            })
+
+        return Response(SuggestedBudgetSerializer(suggestions, many=True).data)
+
+# Financial Insights
+#     
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def investment_recommendations(request):

@@ -84,7 +84,7 @@ const Header: React.FC<HeaderProps> = ({
               <DropdownItem onPress={() => navigation.navigate('chatBot')}>
                 <Text style={{ color: theme.colors.dark }}>BudBot</Text>
               </DropdownItem>
-              <DropdownItem>
+              <DropdownItem onPress={() => navigation.navigate('budget')}>
                 <Text style={{ color: theme.colors.dark }}>Budget</Text>
               </DropdownItem>
               <DropdownItem onPress={() => navigation.navigate('financialInsights')}>

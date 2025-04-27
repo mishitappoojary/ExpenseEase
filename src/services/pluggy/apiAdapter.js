@@ -143,12 +143,57 @@ const plaidApi = {
   getItemStatus: async (itemId) =>
     api.get(`/plaid/items/${itemId}/status/`).then((res) => res.data),
 
+  createBudget: async (budgetData) => {
+    try {
+      console.log('Sending budget data:', budgetData);
+      const response = await api.post('/budgets/', budgetData);
+      
+      if (response.status >= 200 && response.status < 300) {
+        console.log('Created budget response:', response.data);
+        return response.data;  // Return the adjusted budget
+      } else {
+        throw new Error(`Failed to create budget. Status: ${response.status}`);
+      }
+    } catch (error) {
+      console.error('Error creating budget:', error.response?.data || error.message);
+      throw error;  // Propagate the error
+    }
+  },
+
+  getDynamicBudgets: async () => {
+    const response = await api.get("/budgets/auto/");
+    return response.data;
+  },
+  
+  generateDynamicBudget: async () => {
+    const response = await api.post("/budgets/auto-generate/");
+    return response.data;
+  },
+  
+  
+  getBudgets: async () => {
+    try {
+      const response = await api.get('/budgets/');
+      
+      if (response.status >= 200 && response.status < 300) {
+        console.log('Fetched budgets:', response.data);
+        return response.data;
+      } else {
+        throw new Error(`Failed to fetch budgets. Status: ${response.status}`);
+      }
+    } catch (error) {
+      console.error('Failed to fetch budgets:', error.response?.data || error.message);
+      throw error;  // Propagate the error
+    }
+  },
+  
+  
     /** 🧹 Fetch all transactions with 'unknown' category */
     fetchUnknownTransactions: async () =>
       api.get('/transactions/unknown/').then((res) => res.data),
   
     /** 🔁 Bulk update category of transactions by description */
-    bulkUpdateCategory: async (description: string, category: string) =>
+    bulkUpdateCategory: async (description, category) =>
       api.patch('/transactions/bulk_update_category/', { description, category }),  
 };
 

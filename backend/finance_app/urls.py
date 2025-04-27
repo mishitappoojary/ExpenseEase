@@ -11,8 +11,15 @@ from .views import TransactionRetrieveUpdateDestroyView
 from .views import DeleteAllTransactionsView
 from .views import GoalViewSet
 from .views import investment_recommendations
+from .views import generate_dynamic_budget, get_dynamic_budgets
 
 from .views import protected_endpoint
+from rest_framework.routers import DefaultRouter
+from .views import BudgetViewSet, BudgetCategoryViewSet, BudgetSummaryViewSet, BudgetSuggestionsView
+
+router = DefaultRouter()
+# router.register(r'budgets', BudgetViewSet, basename='budget')
+# router.register(r'budget-categories', BudgetCategoryViewSet, basename='budget-category')
 
 urlpatterns = [
     # Root endpoints
@@ -40,6 +47,11 @@ urlpatterns = [
     path('api/goals/<int:pk>/update-progress/', views.GoalViewSet.as_view({'post': 'update_progress'}), name='goal-update-progress'),
     path('api/investment-recommendations/', investment_recommendations, name='investment-recommendations'),
     path('api/chatbot/', views.chatbot_query, name='chatbot_query'),
+    path('budget/suggestions/', BudgetSuggestionsView.as_view(), name='budget-suggestions'),
+
+    path('api/', include(router.urls)),
+    path('api/budgets/auto-generate/', generate_dynamic_budget, name="generate_dynamic_budget"),
+    path('api/budgets/auto/', get_dynamic_budgets, name="get_dynamic_budgets"),
 
     # Authentication
     path('api/auth/', include('rest_framework.urls')),  # DRF built-in authentication views
