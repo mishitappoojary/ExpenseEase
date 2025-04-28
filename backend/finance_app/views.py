@@ -17,14 +17,20 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import viewsets
 from rest_framework.decorators import action
+from decimal import Decimal
 
 from .serializers import TransactionSerializer
-from .models import Transaction
+from .models import Transaction, BudgetCategory, Budget, DynamicBudget
 from .models import Goal
-from .serializers import GoalSerializer
+from .serializers import GoalSerializer, BudgetCategorySerializer, BudgetSerializer, BudgetSummarySerializer, SuggestedBudgetSerializer, DynamicBudgetSerializer
 
+from google.cloud import dialogflow_v2 as dialogflow
+import uuid
+from datetime import timedelta
+from django.utils import timezone
 
 from django.contrib.auth.models import update_last_login
+from django.db.models import Sum
 from .models import UserProfile
 from .serializers import UserSerializer, RegisterSerializer, TransactionSerializer
 from rest_framework_simplejwt.exceptions import TokenError
@@ -34,6 +40,7 @@ import datetime
 import base64
 import tempfile
 import os
+from nltk.sentiment import SentimentIntensityAnalyzer
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import api_view
@@ -42,9 +49,14 @@ from rest_framework import status
 from paddleocr import PaddleOCR
 
 import requests
+import logging
+import random
+from django.conf import settings
 
 #API_URL = "https://trove.headline.com/api/v1/transactions/enrich"
 #API_KEY = "your_api_key"
+
+logger = logging.getLogger(__name__)
 
 
 def homepage(request):
@@ -463,3 +475,302 @@ class DeleteAllTransactionsView(APIView):
     def delete(self, request):
         Transaction.objects.all().delete()  # Deletes all transactions
         return Response(status=status.HTTP_204_NO_CONTENT)
+    
+
+# Dynamic Budgeting
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def generate_dynamic_budget(request):
+    """
+    Auto-create a budget based on user's past spending.
+    """
+    user = request.user
+    period = request.data.get("period", "monthly")  # Default to monthly
+
+    # Analyze past 90 days transactions
+    past_transactions = Transaction.objects.filter(
+        user=user, 
+        date__gte=timezone.now() - timedelta(days=90)
+    )
+
+    if not past_transactions.exists():
+        return Response({"error": "Not enough transaction data"}, status=400)
+
+    spending_by_category = (
+        past_transactions.values("category")
+        .annotate(total_spent=Sum("amount"))
+        .order_by("-total_spent")
+    )
+
+    # Clear old dynamic budgets
+    DynamicBudget.objects.filter(user=user, period=period).delete()
+
+    budgets_created = []
+    for category_data in spending_by_category:
+        category = category_data["category"]
+        spent = abs(category_data["total_spent"])
+
+        if spent < 10:  # Ignore categories with very low spending
+            continue
+
+        # Example: budget 90% of past average spending for that category
+        average_spent = spent / 3  # 3 months
+        budget_amount = average_spent * Decimal(0.9 if period == "monthly" else 0.2)
+
+        dynamic_budget = DynamicBudget.objects.create(
+            user=user,
+            period=period,
+            category=category,
+            amount=budget_amount
+        )
+        budgets_created.append(dynamic_budget)
+
+    serializer = DynamicBudgetSerializer(budgets_created, many=True)
+    return Response(serializer.data, status=201)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_dynamic_budgets(request):
+    user = request.user
+    period = request.query_params.get("period", "monthly")
+    budgets = DynamicBudget.objects.filter(user=user, period=period)
+    serializer = DynamicBudgetSerializer(budgets, many=True)
+    return Response(serializer.data)
+
+
+# Budgeting feature
+class BudgetCategoryViewSet(viewsets.ModelViewSet):
+    serializer_class = BudgetCategorySerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return BudgetCategory.objects.filter(user=self.request.user)
+
+class BudgetViewSet(viewsets.ModelViewSet):
+    serializer_class = BudgetSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Budget.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        budget = serializer.save(user=self.request.user)
+        budget.adjust_budget()
+
+class BudgetSummaryViewSet(viewsets.ViewSet):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def list(self, request):
+        user = request.user
+        
+        # Fetch all budgets for the user, optimizing with select_related for the category
+        budgets = Budget.objects.filter(user=user).select_related('category')
+
+        # Serialize the budgets using the BudgetSummarySerializer
+        summary_data = BudgetSummarySerializer(budgets, many=True)
+
+        # Return the serialized data in the response
+        return Response(summary_data.data)
+    
+class BudgetSuggestionsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        # Last 3 months of transactions
+        three_months_ago = timezone.now() - timedelta(days=90)
+        transactions = Transaction.objects.filter(user=user, date__gte=three_months_ago)
+
+        category_totals = {}
+        category_counts = {}
+
+        for txn in transactions:
+            category = txn.category.name if txn.category else "Uncategorized"
+            category_totals[category] = category_totals.get(category, 0) + txn.amount
+            category_counts[category] = category_counts.get(category, 0) + 1
+
+        suggestions = []
+        for category, total_amount in category_totals.items():
+            count = category_counts[category]
+            avg_per_month = (total_amount / 3)  # 3 months
+            suggestions.append({
+                "category": category,
+                "suggested_amount": round(avg_per_month * 1.1, 2)  # Add 10% buffer
+            })
+
+        return Response(SuggestedBudgetSerializer(suggestions, many=True).data)
+
+# Financial Insights
+#     
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def investment_recommendations(request):
+    try:
+        query = request.GET.get("query", "tech")
+        user = request.user
+        
+        # Fetch spending data
+        spending = (
+            Transaction.objects.filter(user=user)
+            .values('category')
+            .annotate(total_amount=Sum('amount'))
+            .order_by('-total_amount')
+        )
+
+        spending_dict = {s['category']: float(abs(s['total_amount'])) for s in spending}
+
+        # Fetch sentiment + articles from Twitter and News
+        twitter_sentiment, twitter_articles = fetch_twitter_sentiment(query)
+        news_sentiment, news_articles = fetch_news_sentiment(query)
+
+        # Simple recommendations
+        recommendations = generate_dynamic_recommendations(twitter_sentiment, news_sentiment, query, spending_dict)
+
+        return Response({
+            "spending": spending_dict,
+            "sentiment": {
+                "twitter": {
+                    "avg": twitter_sentiment,
+                    "articles": twitter_articles
+                },
+                "news": {
+                    "avg": news_sentiment,
+                    "articles": news_articles
+                }
+            },
+            "recommendations": recommendations
+        }, status=200)
+        
+    except Exception as e:
+        logger.error(f"Error in investment recommendations: {str(e)}")
+        return Response({"error": "Something went wrong"}, status=500)
+
+
+def generate_dynamic_recommendations(twitter_sentiment, news_sentiment, query, user_spending):
+    recommendations = []
+    
+    # Check sentiment scores for Twitter and News
+    if twitter_sentiment > 0.2 and news_sentiment > 0.2:
+        recommendations.append(f"Strong positive sentiment detected in {query}. Consider increasing your investments or research more in {query}-related stocks.")
+    elif twitter_sentiment < -0.2 or news_sentiment < -0.2:
+        recommendations.append(f"Both social media and news are showing negative sentiment towards {query}. It might be wise to avoid heavy investments in {query} right now.")
+    elif -0.2 <= twitter_sentiment <= 0.2 and -0.2 <= news_sentiment <= 0.2:
+        recommendations.append(f"Sentiment around {query} is neutral. Keep an eye on further developments before making major investment decisions.")
+    
+    # Spending insights: Diversification
+    top_spending_category = max(user_spending, key=user_spending.get, default=None)
+    if top_spending_category and user_spending.get(top_spending_category, 0) > 1000:  # Example threshold for heavy spending
+        recommendations.append(f"Your spending is heavily concentrated in {top_spending_category}. Consider diversifying your investments to reduce risk.")
+    
+    # Spending insights: Total spending
+    total_spending = sum(user_spending.values())
+    if total_spending > 5000:  # Example threshold for total spending
+        recommendations.append("Your total spending has been high this month. Consider adjusting your budget or reallocating funds to ensure financial stability.")
+    
+    return recommendations
+
+    
+def fetch_news_sentiment(query):
+    try:
+        sia = SentimentIntensityAnalyzer()
+
+        url = f"https://newsapi.org/v2/everything?q={query}&apiKey={settings.NEWS_API_KEY}&pageSize=10"
+        response = requests.get(url)
+        articles = response.json().get('articles', [])
+
+        if not articles:
+            return 0.0, []
+
+        article_data = []
+        sentiment_scores = []
+
+        for article in articles:
+            title = article.get('title', '')
+            url = article.get('url', '')
+
+            if title:
+                score = sia.polarity_scores(title)['compound']
+                sentiment_scores.append(score)
+
+            article_data.append({
+                "title": title,
+                "url": url
+            })
+
+        avg_sentiment = sum(sentiment_scores) / len(sentiment_scores) if sentiment_scores else 0.0
+
+        return avg_sentiment, article_data
+
+    except Exception as e:
+        logger.error(f"Error fetching news sentiment: {str(e)}")
+        return 0.0, []
+
+def fetch_twitter_sentiment(query):
+    try:
+        sia = SentimentIntensityAnalyzer()
+
+        headers = {
+            "Authorization": f"Bearer {settings.TWITTER_BEARER_TOKEN}"
+        }
+        url = f"https://api.twitter.com/2/tweets/search/recent?query={query}&max_results=10&tweet.fields=author_id,created_at"
+        response = requests.get(url, headers=headers)
+        tweets = response.json().get('data', [])
+
+        if not tweets:
+            return 0.0, []
+
+        tweet_data = []
+        sentiment_scores = []
+
+        for tweet in tweets:
+            tweet_id = tweet.get('id')
+            text = tweet.get('text', '')
+            author_id = tweet.get('author_id')
+
+            if text:
+                score = sia.polarity_scores(text)['compound']
+                sentiment_scores.append(score)
+
+            tweet_url = f"https://twitter.com/i/web/status/{tweet_id}"
+
+            tweet_data.append({
+                "text": text,
+                "url": tweet_url
+            })
+
+        avg_sentiment = sum(sentiment_scores) / len(sentiment_scores) if sentiment_scores else 0.0
+
+        return avg_sentiment, tweet_data
+
+    except Exception as e:
+        logger.error(f"Error fetching twitter sentiment: {str(e)}")
+        return 0.0, []
+    
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def chatbot_query(request):
+    try:
+        user_message = request.data.get("message")
+        if not user_message:
+            return Response({"error": "No message provided"}, status=400)
+
+        # Unique session per user
+        session_id = str(request.user.id) or str(uuid.uuid4())
+        session_client = dialogflow.SessionsClient()
+        session = session_client.session_path("capitalguard-451015", session_id)
+
+        text_input = dialogflow.TextInput(text=user_message, language_code="en")
+        query_input = dialogflow.QueryInput(text=text_input)
+
+        response = session_client.detect_intent(session=session, query_input=query_input)
+
+        bot_reply = response.query_result.fulfillment_text
+
+        return Response({
+            "reply": bot_reply
+        }, status=200)
+
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)

@@ -8,6 +8,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-15s+x8!v7=5))%xit7&vphm88^mp)(zjnp)_1*5u1%_$6(0_ms'
+TWITTER_BEARER_TOKEN = "AAAAAAAAAAAAAAAAAAAAAF9czQEAAAAACpz6cZItPT3am32mCMz65AoKVJE%3DxiykPNpITqEOHZzvioJtJxmZprLtLeqPbxBfNAYzz2IVp22e1W"
+NEWS_API_KEY = "5f8a22088e2242f1819827700267bb7f"
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -54,7 +56,12 @@ PLAID_SECRET="bec2b4517049ec2a616759317f63cc"
 PLAID_ENV="sandbox"
 
 DEBUG=True
-CELERY_BROKER_URL="redis://localhost:6379/0"
+# CELERY_BROKER_URL = 'redis://localhost:6379/0'  # or the appropriate Redis URL
+# CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+# CELERY_ACCEPT_CONTENT = ['json']
+# CELERY_TASK_SERIALIZER = 'json'
+# CELERY_RESULT_SERIALIZER = 'json'
+
 APP_URL="http://localhost:8000",
 
 MIDDLEWARE = [

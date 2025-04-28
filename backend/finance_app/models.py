@@ -3,6 +3,11 @@ from django.db import models
 from django.contrib.auth import get_user_model
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
+from datetime import timedelta, timezone
+from django.db.models import Sum
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+
 
 User = get_user_model()
 
@@ -85,7 +90,7 @@ class Transaction(models.Model):
     type = models.CharField(max_length=10, choices=[('debit', 'Debit'), ('credit', 'Credit')], default='debit')
     ref_number = models.CharField(max_length=100, null=True, blank=True)  # Optional, for SMS transactions
     bank = models.CharField(max_length=50, null=True, blank=True)  # Optional, for SMS transactions
-    source = models.CharField(max_length=50, choices=[('sms', 'SMS'), ('ocr', 'OCR'), ('manual', 'Manual')], default='manual')  # New source field
+    source = models.CharField(max_length=50, choices=[('sms', 'SMS'), ('ocr', 'OCR'), ('manual', 'Manual')], default='manual')
     
     def __str__(self):
         return f"{self.user.username} - {self.amount} - {self.description} - {self.category} - {self.type} - {self.ref_number} - {self.bank} - {self.source}"
@@ -111,3 +116,100 @@ class Notification(models.Model):
 
     def __str__(self):
         return f"Notification for {self.user.username}"
+
+# Budgeting feature
+
+class DynamicBudget(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    period = models.CharField(max_length=10, choices=(('weekly', 'Weekly'), ('monthly', 'Monthly')))
+    category = models.CharField(max_length=100)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'period', 'category')
+
+    def __str__(self):
+        return f"{self.user.username} - {self.period} budget for {self.category}"
+
+class BudgetCategory(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    name = models.CharField(max_length=100)
+
+    def __str__(self):
+        return self.name
+
+class Budget(models.Model):
+    PERIOD_CHOICES = [
+        ("weekly", "Weekly"),
+        ("monthly", "Monthly"),
+    ]
+    
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    category = models.ForeignKey(BudgetCategory, on_delete=models.CASCADE)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    period = models.CharField(max_length=10, choices=PERIOD_CHOICES, default="monthly")
+    start_date = models.DateField()
+    end_date = models.DateField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def spent_amount(self):
+        today = timezone.localdate()  # Local date with timezone awareness
+        if self.period == "weekly":
+            week_start = today - timedelta(days=today.weekday())
+            week_end = week_start + timedelta(days=6)
+
+            total_spent = Transaction.objects.filter(
+                user=self.user,
+                category=self.category.name,
+                date__range=(week_start, week_end)
+            ).aggregate(total_spent=Sum('amount'))['total_spent'] or 0
+        else:
+            total_spent = Transaction.objects.filter(
+                user=self.user,
+                category=self.category.name,
+                date__range=(self.start_date, self.end_date)
+            ).aggregate(total_spent=Sum('amount'))['total_spent'] or 0
+
+        return total_spent
+    
+    def adjust_budget(self):
+        spent = self.spent_amount()
+
+        if spent > self.amount:
+            # Example dynamic increase: 10% increase if overspent by more than 20%
+            if spent > self.amount * 1.2:
+                self.amount = self.amount * 1.20
+            else:
+                self.amount = self.amount * 1.10
+
+            self.save()
+    
+    def is_nearing_limit(self):
+        spent = self.spent_amount()
+        return spent >= self.amount * 0.8
+    
+    def remaining_amount(self):
+        return self.amount - self.spent_amount()
+
+    def previous_week_spent_amount(self):
+        today = timezone.localdate()
+        last_week_start = today - timedelta(days=today.weekday() + 7)  # Start of the previous week
+        last_week_end = last_week_start + timedelta(days=6)  # End of the previous week
+
+        total_spent_last_week = Transaction.objects.filter(
+            user=self.user,
+            category=self.category.name,
+            date__range=(last_week_start, last_week_end)
+        ).aggregate(total_spent=Sum('amount'))['total_spent'] or 0
+
+        return total_spent_last_week
+    
+    def __str__(self):
+        return f"{self.category.name} Budget - {self.period}"
+
+@receiver(post_save, sender=settings.AUTH_USER_MODEL)
+def create_default_budget(sender, instance, created, **kwargs):
+    if created:
+        default_category, created = BudgetCategory.objects.get_or_create(user=instance, name="General")
+        Budget.objects.create(user=instance, category=default_category, amount=500, period="monthly")

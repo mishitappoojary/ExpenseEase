@@ -19,6 +19,9 @@ import AddCategories from '../pages/Categories/AddCategories';
 import GoalsScreen from '../pages/Goals/GoalsScreen';
 import ResolveTransactions from '../pages/TransactionScreen/ResolveTransactions';
 import MainGraphScreen from '../pages/Graphs/MainGraphScreen';
+import FinancialInsights from '../pages/FinancialInsights/FinancialInsights';
+import ChatbotScreen from '../pages/Chatbot/ChatbotScreen';
+import AutoBudgetScreen from '../pages/Budget/AutoBudgetScreen';
 
 export type StackRouteParamList = {
   home: undefined;
@@ -35,7 +38,9 @@ export type StackRouteParamList = {
   goals: undefined;
   resolveTransactions: undefined;
   graphScreen: undefined;
-
+  financialInsights: undefined;
+  chatBot: undefined;
+  budget: undefined;
 };
 
 const Stack = createNativeStackNavigator<StackRouteParamList>();
@@ -73,6 +78,9 @@ const StackRoutes: React.FC = () => {
           <Stack.Screen name="goals" component={GoalsScreen} />
           <Stack.Screen name="resolveTransactions" component={ResolveTransactions} />
           <Stack.Screen name="graphScreen" component={MainGraphScreen} />
+          <Stack.Screen name="financialInsights" component={FinancialInsights} />
+          <Stack.Screen name="chatBot" component={ChatbotScreen} />
+          <Stack.Screen name="budget" component={AutoBudgetScreen} />
         </>
       ) : (
         <>
