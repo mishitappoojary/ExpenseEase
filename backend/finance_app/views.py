@@ -41,6 +41,7 @@ import base64
 import tempfile
 import os
 from nltk.sentiment import SentimentIntensityAnalyzer
+import nltk
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import api_view
@@ -52,6 +53,12 @@ import requests
 import logging
 import random
 from django.conf import settings
+
+
+try:
+    nltk.data.find('sentiment/vader_lexicon.zip')
+except LookupError:
+    nltk.download('vader_lexicon')
 
 #API_URL = "https://trove.headline.com/api/v1/transactions/enrich"
 #API_KEY = "your_api_key"
@@ -442,12 +449,30 @@ class GoalViewSet(viewsets.ViewSet):
         return Response(status=204)
 
     # Update goal progress
+    @action(detail=True, methods=['post'])
     def update_progress(self, request, pk=None):
-        goal = Goal.objects.get(pk=pk)
-        goal.progress += 1000  # Increment by 100, or any logic you wish
+        try:
+            goal = Goal.objects.get(pk=pk)
+        except Goal.DoesNotExist:
+            return Response({'error': 'Goal not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Get the increment value from request body
+        increment = request.data.get('increment', None)
+        
+        if increment is None:
+            return Response({'error': 'Increment value not provided'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            increment = int(increment)
+        except ValueError:
+            return Response({'error': 'Increment must be an integer'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Update the goal progress
+        goal.progress += increment
         goal.save()
-        return Response({'status': 'progress updated'})
-             
+
+        return Response({'status': 'progress updated', 'new_progress': goal.progress}, status=status.HTTP_200_OK)
+
 @csrf_exempt
 def get_merchant_category(request):
     if request.method == "POST":

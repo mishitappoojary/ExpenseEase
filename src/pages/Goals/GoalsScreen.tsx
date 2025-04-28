@@ -1,14 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Button, Alert, FlatList, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, Button, Alert, FlatList, TouchableOpacity, Modal } from 'react-native';
 import { ProgressBar } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import goalApi from '../../services/pluggy/apiAdapter';
+import { MaterialIcons } from '@expo/vector-icons';
+import { Dimensions } from 'react-native';
+
+const screenWidth = Dimensions.get('window').width;
+const columns = screenWidth > 600 ? 4 : 3;
 
 const GoalsScreen = () => {
   const [goals, setGoals] = useState([]);
   const [goalTitle, setGoalTitle] = useState('');
   const [goalIcon, setGoalIcon] = useState('star');
   const [goalBudget, setGoalBudget] = useState('');
+  const [showIncrementModal, setShowIncrementModal] = useState(false); // To show increment modal
+  const [selectedGoalId, setSelectedGoalId] = useState(null); // To store the goal being updated
+  const [incrementValue, setIncrementValue] = useState(''); 
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [selectedIcon, setSelectedIcon] = useState('star');
 
   const availableIcons = [
     'star', 'beach-access', 'directions-car', 'bike-scooter', 'wallet-travel', 'flight-takeoff', 
@@ -57,17 +67,25 @@ const GoalsScreen = () => {
     }
   };
 
-  // Update goal progress
-  const updateProgress = async (goalId) => {
-    const progressIncrement = 1000;
+  // Update goal progress based on user input
+  const updateProgress = async () => {
+    if (!incrementValue) {
+      Alert.alert('Error', 'Please enter an increment value.');
+      return;
+    }
+
+    const progressIncrement = parseInt(incrementValue, 10);
 
     try {
-      const response = await goalApi.post(`goals/${goalId}/update-progress/`, { progress: progressIncrement });
+      const response = await goalApi.post(`goals/${selectedGoalId}/update-progress/`, { increment: progressIncrement });
       const updatedGoal = response.data;
 
       const updatedGoals = goals.map((goal) =>
-        goal.id === goalId ? updatedGoal : goal
+        goal.id === selectedGoalId ? updatedGoal : goal
       );
+      setGoals(updatedGoals);
+      setShowIncrementModal(false);
+      setIncrementValue('');
       loadGoals();
     } catch (error) {
       console.error(error);
@@ -87,6 +105,11 @@ const GoalsScreen = () => {
     }
   };
 
+   const handleIconSelect = (icon) => {
+    setGoalIcon(icon);
+    setIsModalVisible(false); // Close the modal after selection
+  };
+
   const renderGoalCard = ({ item }) => (
     <View style={styles.goalCard}>
       <View style={styles.goalHeader}>
@@ -100,12 +123,15 @@ const GoalsScreen = () => {
       </Text>
       <ProgressBar progress={item.budget > 0 ? item.progress / item.budget : 0} color="#6200ea" style={styles.progressBar} />
       <View style={styles.buttonRow}>
-      <TouchableOpacity 
-        style={styles.button} 
-        onPress={() => updateProgress(item.id)}
-      >
-        <Text style={[styles.buttonText, { backgroundColor: '#00A8A1' }]}>+ ₹1000</Text>
-      </TouchableOpacity>
+        <TouchableOpacity 
+          style={styles.button} 
+          onPress={() => {
+            setSelectedGoalId(item.id);
+            setShowIncrementModal(true);
+          }}
+        >
+          <Text style={[styles.buttonText, { backgroundColor: '#00A8A1' }]}>Add +</Text>
+        </TouchableOpacity>
 
         <TouchableOpacity 
           style={styles.button} 
@@ -126,19 +152,16 @@ const GoalsScreen = () => {
         value={goalTitle}
         onChangeText={setGoalTitle}
       />
+
       <View style={styles.iconButtonContainer}>
-      <Text style={styles.iconLabel}>Select an Icon:</Text>
-      <TouchableOpacity
-        style={styles.iconButton}
-        onPress={() => {
-          const currentIndex = availableIcons.indexOf(goalIcon);
-          const nextIndex = (currentIndex + 1) % availableIcons.length;
-          setGoalIcon(availableIcons[nextIndex]);
-        }}
-      >
-        <Icon name={goalIcon} size={50} color="#fff" />
-      </TouchableOpacity>
-    </View>
+        <Text style={styles.iconLabel}>Select an Icon:</Text>
+        <TouchableOpacity
+          style={styles.iconButton}
+          onPress={() => setIsModalVisible(true)}
+        >
+          <Icon name={goalIcon} size={50} color="#fff" />
+        </TouchableOpacity>
+      </View>
 
       <TextInput
         style={styles.input}
@@ -157,9 +180,69 @@ const GoalsScreen = () => {
         keyExtractor={(item) => item.id ? item.id.toString() : Math.random().toString()}
         contentContainerStyle={styles.flatListContent}
       />
+
+      <Modal
+        visible={showIncrementModal}
+        onRequestClose={() => setShowIncrementModal(false)}
+        transparent={true}
+        animationType="slide"
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter increment value"
+              keyboardType="numeric"
+              value={incrementValue}
+              onChangeText={setIncrementValue}
+            />
+            <TouchableOpacity style={styles.button} onPress={updateProgress}>
+              <Text style={[styles.buttonText, { backgroundColor: '#00A8A1' }]}>Update Progress</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.button} onPress={() => setShowIncrementModal(false)}>
+              <Text style={[styles.buttonText, { backgroundColor: '#D32F2F' }]}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+  visible={isModalVisible}
+  onRequestClose={() => setIsModalVisible(false)}
+  transparent={true}
+  animationType="slide"
+>
+  <View style={styles.iconModalContainer}>
+    <View style={styles.iconModalContent}>
+      <FlatList
+        data={availableIcons}
+        keyExtractor={(item) => item}
+        numColumns={columns}  
+        key={`flatlist-${columns}`} 
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={styles.iconOption}
+            onPress={() => handleIconSelect(item)}
+          >
+            <Icon name={item} size={30} color="#fff" />
+          </TouchableOpacity>
+        )}
+      />
+
+      <TouchableOpacity
+        style={styles.iconsButton}
+        onPress={() => setIsModalVisible(false)}
+      >
+        <Text style={styles.buttonText}>Cancel</Text>
+      </TouchableOpacity>
+    </View>
+  </View>
+</Modal>
+
     </View>
   );
 };
+
 
 const styles = {
   container: {
@@ -267,7 +350,6 @@ const styles = {
     fontSize: 15,
     fontWeight: 'bold',
   },
-
   button: {
     paddingVertical: 8, 
     paddingHorizontal: 50, 
@@ -282,6 +364,59 @@ const styles = {
     textAlign: 'center',
     padding: 8,
   },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)', 
+  },  
+    modalContent: {
+    backgroundColor: '#FFFFFF',
+    padding: 20,
+    borderRadius: 10,
+    width: '80%',
+    alignItems: 'center',
+  },
+  iconsButton: {
+    backgroundColor: '#D32F2F',
+    borderRadius: 5,
+    padding: 8,
+    marginTop: 10,
+  },
+
+  iconModalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+
+  iconModalContent: {
+    backgroundColor: '#fff',
+    padding: 15,
+    borderRadius: 8,
+    width: '80%',
+    alignItems: 'center',
+  },
+
+  iconOptionContainer: {
+    flexDirection: 'row',
+    marginTop: 10,
+    justifyContent: 'space-evenly',
+    flexWrap: 'wrap',
+  },
+
+  iconOption: {
+    backgroundColor: '#6200ea',
+    borderRadius: 5,
+    padding: 12,
+    margin: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '25%',  
+    height: 60,
+  },
+  
 };
 
 export default GoalsScreen;
