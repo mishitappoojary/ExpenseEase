@@ -773,6 +773,10 @@ def fetch_twitter_sentiment(query):
         logger.error(f"Error fetching twitter sentiment: {str(e)}")
         return 0.0, []
     
+
+import logging
+logger = logging.getLogger(__name__)
+
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def chatbot_query(request):
@@ -781,10 +785,13 @@ def chatbot_query(request):
         if not user_message:
             return Response({"error": "No message provided"}, status=400)
 
-        # Unique session per user
-        session_id = str(request.user.id) or str(uuid.uuid4())
+        session_id = str(getattr(request.user, 'id', None)) or str(uuid.uuid4())
+        logger.debug(f"Session ID: {session_id}")
+
         session_client = dialogflow.SessionsClient()
         session = session_client.session_path("capitalguard-451015", session_id)
+
+        logger.debug(f"Session Path: {session}")
 
         text_input = dialogflow.TextInput(text=user_message, language_code="en")
         query_input = dialogflow.QueryInput(text=text_input)
@@ -792,21 +799,13 @@ def chatbot_query(request):
         response = session_client.detect_intent(session=session, query_input=query_input)
 
         bot_reply = response.query_result.fulfillment_text
+        logger.debug(f"Bot Reply: {bot_reply}")
 
-        return Response({
-            "reply": bot_reply
-        }, status=200)
+        return Response({"reply": bot_reply}, status=200)
 
     except Exception as e:
+        logger.error(f"Error in chatbot_query: {str(e)}", exc_info=True)
         return Response({"error": str(e)}, status=500)
-
-# transactions/views.py
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
-from datetime import datetime, timedelta
-from .models import Transaction
-from .serializers import TransactionSerializer
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])

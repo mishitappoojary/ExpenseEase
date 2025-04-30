@@ -8,7 +8,7 @@ import { StyleSheet } from 'react-native';
 import { useAppContext } from '../../contexts/AppContext';
 
 //const API_BASE_URL = 'http://10.0.2.2:8000/api/accounts';
-const API_BASE_URL = 'http://192.168.0.103:8000/api/accounts';
+const API_BASE_URL = 'http://172.20.10.5:8000/api/accounts';
 
 const SignUpScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<StackRouteParamList>>();

@@ -98,6 +98,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://10.0.2.2:8000",
     "http://10.0.2.2:19000", 
     "http://192.168.0.103:8000",
+    "http://172.20.10.5:8000",
 ]
 
 # allauth settings

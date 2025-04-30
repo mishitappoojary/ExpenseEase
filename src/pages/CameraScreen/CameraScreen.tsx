@@ -32,7 +32,7 @@ const CameraScreen: React.FC = () => {
 
   const cameraRef = useRef(null);
   // Django backend API URL - update with your actual server URL
-  const API_URL = 'http://192.168.0.103:8000/api/process-receipt/';
+  const API_URL = 'http://172.20.10.5:8000/api/process-receipt/';
 
  if (!permission) return <View />;
   if (!permission.granted) {

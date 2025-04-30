@@ -414,7 +414,7 @@ const Home: React.FC = () => {
 
   const fetchCategoryFromBackend = async (merchant) => {
     try {
-      const response = await fetch('http://192.168.0.103:8000/api/get-merchant-category/', {
+      const response = await fetch('http://172.20.10.5:8000/api/get-merchant-category/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

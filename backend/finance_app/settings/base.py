@@ -168,6 +168,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://10.0.2.2:19000",
     "http://192.168.29.253:8000",
     "http://192.168.0.103",
+    "http://172.20.10.5",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -184,7 +185,7 @@ CORS_ALLOW_HEADERS = [
     'x-requested-with',
 ]
 
-CSRF_TRUSTED_ORIGINS = ['http://192.168.29.253:8000', "http://192.168.29.253:3000", 'http://127.0.0.1:8000', 'http://10.0.2.2:8000', "http://192.168.0.103", "http://192.168.0.108" ]
+CSRF_TRUSTED_ORIGINS = ['http://192.168.29.253:8000', "http://192.168.29.253:3000", 'http://127.0.0.1:8000', 'http://10.0.2.2:8000', "http://192.168.0.103", "http://192.168.0.108","http://172.20.10.5", ]
 CSRF_COOKIE_SECURE = False  # Set to True in production with HTTPS
 CSRF_USE_SESSIONS = False
 CSRF_COOKIE_HTTPONLY = False
