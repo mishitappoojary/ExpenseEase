@@ -3,7 +3,7 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from rest_framework.routers import DefaultRouter
-from . import views  # Make sure views.py exists and has homepage & api_root
+from . import views 
 from backend.finance_app.views import CustomTokenObtainPairView, CustomTokenRefreshView
 from backend.plaid.transactions_views import LiabilitiesView
 from .views import TransactionListCreateView
@@ -52,6 +52,7 @@ urlpatterns = [
     path('api/', include(router.urls)),
     path('api/budgets/auto-generate/', generate_dynamic_budget, name="generate_dynamic_budget"),
     path('api/budgets/auto/', get_dynamic_budgets, name="get_dynamic_budgets"),
+    #path('api/bills/upcoming/', upcoming_bills, name='upcoming_bills'),
 
     # Authentication
     path('api/auth/', include('rest_framework.urls')),  # DRF built-in authentication views

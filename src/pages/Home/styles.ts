@@ -286,8 +286,32 @@ export const styles = StyleSheet.create({
     width: 50,
     height: 50,
     resizeMode: 'contain',
-  }
-  
-  
+  },
+  reminderContainer: {
+    marginTop: 20,
+    backgroundColor: '#284D63',
+    padding: 16,
+    borderRadius: 12,
+  },
+  reminderTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 5,
+    marginTop: 10,
+    color: '#00A8A1',
+  },
+  reminderCard: {
+    backgroundColor: '#3C6E71',
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  reminderText: {
+    color: '#fff',
+  },
+  noBills: {
+    color: '#fff',
+    fontStyle: 'italic',
+  },
   
 });

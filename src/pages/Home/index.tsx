@@ -682,6 +682,25 @@ const Home: React.FC = () => {
             </TouchableOpacity>
           </View>
 
+
+          <View style={styles.reminderContainer}>
+            <Text style={styles.reminderTitle}>Bill Reminders</Text>
+
+            {/* {billReminders.length > 0 ? (
+              billReminders.map((bill, idx) => (
+                <View key={idx} style={styles.reminderCard}>
+                  <Text style={styles.reminderText}>
+                    💡 {bill.name || "Unnamed Bill"} of ₹{bill.amount} is due on{' '}
+                    {new Date(bill.date).toDateString()}
+                  </Text>
+                </View>
+              ))
+            ) : ( */}
+              <Text style={styles.noBills}>✅ No bills due!</Text>
+            {/* )} */}
+          </View>
+
+
           <View style={styles.SMScontainer}>
           <Text style={styles.header}>Extracted Transactions</Text>
           <TouchableOpacity onPress={reloadMessages}>

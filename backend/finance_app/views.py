@@ -799,3 +799,37 @@ def chatbot_query(request):
 
     except Exception as e:
         return Response({"error": str(e)}, status=500)
+
+# transactions/views.py
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from datetime import datetime, timedelta
+from .models import Transaction
+from .serializers import TransactionSerializer
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def upcoming_bills(request):
+    today = datetime.now().date()
+    two_days_later = today + timedelta(days=2)
+
+    bills = Transaction.objects.filter(
+        user=request.user,
+        category__icontains='bill',
+        type='debit'
+    )
+
+    due_bills = []
+
+    for bill in bills:
+        bill_day = bill.date.day
+        bill_month = bill.date.month
+
+        # If due in two days from today (monthly repeating logic)
+        if bill_day == two_days_later.day:
+            due_bills.append(bill)
+
+    serializer = TransactionSerializer(due_bills, many=True)
+    return Response(serializer.data)
+
